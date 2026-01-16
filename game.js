@@ -7,6 +7,8 @@ import { drawGame } from './render.js';
 import { setupInput } from './input.js';
 import { config } from './config.js';
 import { updateAnimation } from './animation.js';
+import { generatePatterns, movePatterns, removeOffscreenPatterns, drawPatterns } from './background.js';
+
 
 //ziskani canvas elementu z HTML
 const canvas = document.getElementById('game');
@@ -30,28 +32,33 @@ setupInput();
 
 //hlavni smycka hry
 function gameLoop() {
-  //aktualizace pozice hrace
-  updatePlayer(height, config.floorHeight);
-  
-  updateAnimation(isColliding);
-  //generovani novych prekazek smerem k hraci
-  generateObstacles(width, height, config.floorHeight);
-  //posouvani prekazek smerem k hraci
-  moveObstacles(isColliding);
-  //odstraneni prekazek mimo obrazovku
-  removeOffscreenObstacles();
+  updatePlayer(height, config.floorHeight); // aktualizace pozice hrace podle fyziky
+  updateAnimation(isColliding); // aktualizace otaceni
 
-  //kontrola kolize hrace s prekazkami
-  isColliding = checkCollision(height, config.floorHeight);
+  generatePatterns(width, height, config.floorHeight); //generovani objektu pozadi
+  if (!isColliding) { //pokud hrac nenaraci, pohybuji se vzory
+  movePatterns();
+  }
+  removeOffscreenPatterns(); //odstrani vzory co nejsou videt
 
-  //vykresleni cele sceny
-  drawGame(width, height);
+  generateObstacles(width, height, config.floorHeight); //generovani prekazek
+  moveObstacles(isColliding); //pohyb prekazek
+  removeOffscreenObstacles(); //odstraneni prekazek mimo obrazovku
 
-  //volani gameLoop pro dalsi snimek
+  isColliding = checkCollision(height, config.floorHeight); //kontrola narazu do prekazky
+
+//kresleni sceny postupne
+ctx.fillStyle = "#222"; //vycisteni canvasu tmavym pozadim
+ctx.fillRect(0, 0, width, height); //vyplneni celeho canvasu
+
+drawPatterns(); //vykresleni vzoru na pozadi
+
+drawGame(width, height); //vykresleni prekazek a hrace
+
+
+  //opakovani smycky pro dalsi snimek
   requestAnimationFrame(gameLoop);
 }
-
-console.log("geome angle:", geome.angle)
 
 //spusteni hry
 gameLoop();

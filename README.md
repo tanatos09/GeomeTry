@@ -32,17 +32,25 @@ Cesta je plná výzev, nepřátel a překážek, ale Geome věří, že láska a
 - Hráč může Geomeho skákat pomocí mezerníku, šipky nahoru nebo kliknutím myši.  
 - Gravitační síla táhne Geomeho dolů, pohyb je omezen stropem a podlahou.  
 - Překážky (bloky) se generují náhodně nahoře, dole, nebo obojí, a posouvají se zprava doleva.  
-- Detekce kolizí
-- Překážky mimo obraz se odstraňují, hra běží v nekonečné smyčce.
+- Detekce kolizí mezi Geomem a překážkami, včetně zastavení pohybu při nárazu.  
+- Překážky mimo obraz se odstraňují, hra běží v nekonečné smyčce.  
+- Animace rotace Geoma, která se zastaví při kolizi.  
+- Dynamicky generované geometrické vzory v pozadí s různými barvami, počtem hran a rotací.  
+- Pozadí je oddělené od hlavní scény, vzory se pohybují synchronně s překážkami, ale jsou průhledné a vykreslené pod překážkami i hráčem.  
+- Kód je modulárně rozdělený (render, hráč, překážky, kolize, animace, pozadí, entitní manažer).  
+- Responsivní velikost canvasu podle okna prohlížeče.
 
 ---
 
 ## Plán do budoucna
 
-- Přidávání hran a proměna Geomea na další tvary.  
-- Přidání nepřátel a bojových mechanik.  
+- Postupná proměna Geomea přidáváním hran a transformace do dalších tvarů.  
+- Zavedení nepřátel s podobnou logikou generování jako překážky a pozadí.  
+- Přidání bojových mechanik a interakcí s okolím.  
 - Rozšíření příběhu a herních kapitol (*To Be Animal*, *To Be Human* a další).  
-- Vylepšení animací a vizuálních efektů.
+- Přidání herních systémů (skóre, postup, schopnosti, power-upy).  
+- Vylepšení animací, vizuálních efektů a celkové atmosféry hry.  
+- Další modularizace a optimalizace kódu pro snadnější rozšiřování.
 
 ---
 
