@@ -139,22 +139,44 @@ function gameLoop() {
             geome.x + geome.radius > obs.x &&
             geome.x - geome.radius < obs.x + obs.width;
 
+        const prevY = geome.y - geome.velocityY;
+
         const hitTop =
             obs.top > 0 && geome.y - geome.radius < obs.top;
 
         const hitBottom =
             obs.bottom > 0 && geome.y + geome.radius > height - floorHeight - obs.bottom;
 
-        if (hitX && (hitTop || hitBottom)) {
-            if (!isColliding) { 
-                isColliding = true;
-                geome.velocityY = 0;
-            }
+        // kolize shora - přistání na plošině
+        if (
+            hitX && hitBottom && geome.velocityY > 0 && prevY + geome.radius <= obs.top
+        ) {
+            geome.y = obs.top - geome.radius;
+            geome.velocityY = 0;
         }
-                
-        //odstraneni prekazky mimo obraz
-        if (obs.x + obs.width < 0) {
-            obstacles.splice(i, 1);
+        // kolize zdola - bouchnutí hlavou
+        else if (
+            hitX && hitTop && geome.velocityY < 0 && prevY - geome.radius >= obs.top
+        ) {
+            geome.y = obs.top + geome.radius;
+            geome.velocityY = 0;
+        }
+
+        if (
+    hitX && hitBottom && geome.velocityY > 0 &&
+    prevY + geome.radius <= height - floorHeight - obs.bottom
+) {
+    geome.y = height - floorHeight - obs.bottom - geome.radius;
+    geome.velocityY = 0;
+}
+        // kolize z boku - zastavení hry
+        else if (
+            hitX && (
+                (geome.y - geome.radius < obs.top) || 
+                (geome.y + geome.radius > height - floorHeight - obs.bottom)
+            )
+        ) {
+            isColliding = true;
         }
     }
 
