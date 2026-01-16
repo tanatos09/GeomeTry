@@ -31,10 +31,10 @@ export function checkCollision(canvasHeight, floorHeight) {
       continue;
     }
 
-    // kolize s podlahou překážky (shora na spodní část)
+    // kolize s podlahou překážky
     if (hitX && hitBottom && geome.velocityY > 0 && prevY + geome.radius <= canvasHeight - floorHeight - obs.bottom) {
-      geome.y = canvasHeight - floorHeight - obs.bottom - geome.radius;
-      geome.velocityY = 0;
+      geome.y = canvasHeight - floorHeight - obs.bottom - geome.radius; // nastavi hrace na spodni cast prekazky
+      geome.velocityY = 0; // zastavi pad
       continue;
     }
 
@@ -44,5 +44,5 @@ export function checkCollision(canvasHeight, floorHeight) {
       break;
     }
   }
-  return isColliding;
+  return isColliding; //vraci jestli hrac narazil do prekazky
 }

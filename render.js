@@ -7,13 +7,13 @@ const canvas = document.getElementById('game');
 export const ctx = canvas.getContext('2d');
 
 //funkce pro vykresleni pravidelneho mnohouhelniku
-export function drawPolygon(x, y, radius, sides, color) {
+export function drawPolygon(x, y, radius, sides, color, rotation = 0) {
   if (sides < 3) return; //minimalne 3 strany (trojuhelnik)
   const angleStep = (2 * Math.PI) / sides; //uhel mezi vrcholy
   ctx.beginPath();
 
   for (let i = 0; i < sides; i++) {
-    const angle = i * angleStep;
+    const angle = i * angleStep + rotation;
     const pointX = x + Math.cos(angle) * radius; //X souradnice vrcholu
     const pointY = y + Math.sin(angle) * radius; //Y souradnice vrcholu
     i === 0 ? ctx.moveTo(pointX, pointY) : ctx.lineTo(pointX, pointY); // prvni vrchol
@@ -45,5 +45,5 @@ export function drawGame(canvasWidth, canvasHeight) {
   });
 
   // hráč
-  drawPolygon(geome.x, geome.y, geome.radius, 3, '#00e5ff');
+  drawPolygon(geome.x, geome.y, geome.radius, 3, '#00e5ff', geome.angle);
 }

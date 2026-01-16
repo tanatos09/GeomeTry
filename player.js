@@ -8,6 +8,7 @@ export const geome = {
   velocityY: 0, //vertikalni rychlost hrace
   gravity: config.gravity, //gravitace (config)
   lift: config.lift, //skok (config)
+  angle: 0,
 };
 
 //pozice hrace pri startu nebo smene velikosti
