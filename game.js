@@ -8,7 +8,8 @@ import { setupInput } from './input.js';
 import { config } from './config.js';
 import { updateAnimation } from './animation.js';
 import { generatePatterns, movePatterns, removeOffscreenPatterns, drawPatterns } from './background.js';
-
+import { generateEnemies, moveEnemies, removeOffscreenEnemies, drawEnemies, checkEnemyCollision } from './enemies.js';
+import { updateEnemyEffects, drawEnemyEffects } from "./enemyEffects.js";
 
 //ziskani canvas elementu z HTML
 const canvas = document.getElementById('game');
@@ -43,7 +44,15 @@ function gameLoop() {
 
   generateObstacles(width, height, config.floorHeight); //generovani prekazek
   moveObstacles(isColliding); //pohyb prekazek
+  updateEnemyEffects(height, config.floorHeight, isColliding);
   removeOffscreenObstacles(); //odstraneni prekazek mimo obrazovku
+
+  generateEnemies(width, height, config.floorHeight);
+  moveEnemies(isColliding, width, height, config.floorHeight);
+  removeOffscreenEnemies();
+
+  checkEnemyCollision(geome);
+
 
   isColliding = checkCollision(height, config.floorHeight); //kontrola narazu do prekazky
 
@@ -52,6 +61,10 @@ ctx.fillStyle = "#222"; //vycisteni canvasu tmavym pozadim
 ctx.fillRect(0, 0, width, height); //vyplneni celeho canvasu
 
 drawPatterns(); //vykresleni vzoru na pozadi
+
+drawEnemies();
+drawEnemyEffects();
+
 
 drawGame(width, height); //vykresleni prekazek a hrace
 
