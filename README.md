@@ -1,238 +1,205 @@
-# GeomeTry: To Be Circle
+# GeomeTry - A Geometry-Based Arcade Game
 
-## About
+## Overview
 
-**GeomeTry** is a minimalist geometric game with RPG and idle elements. You control a character called **Geome** — a small triangle trying to become an almost perfect circle.
+GeomeTry is an interactive arcade-style game where the player controls a geometric polygon (starting as a triangle) and navigates through obstacles while collecting floating angles to earn upgrades and level up. The game features a progressive upgrade system with two main upgrade paths: **Color upgrades** (for collecting angles) and **Sharpness upgrades** (for earning XP from enemy kills).
 
-The goal is to gradually add sides and transform Geome from a triangle to a square, a pentagon, and eventually into an almost-circle.
+## Game Features
 
----
+- **Progressive Leveling System**: Earn XP by defeating enemies and gain angles by collecting floating angle collectibles
+- **Two Upgrade Paths**:
+  - **Color Upgrades**: Red → Orange → Gold → Turquoise → Purple (increase angle collection bonuses)
+  - **Sharpness Upgrades**: Sharp → Very Sharp → Steel → Diamond → Plasma (increase XP per enemy kill)
+- **Shape Upgrades**: Unlock new player shapes (more sides = more complex polygons) at Level 2+
+- **Enemy Combat**: Defeat enemies with different polygon shapes to earn XP and angles
+- **Obstacle Navigation**: Dodge obstacles while moving through the level
+- **Visual Effects**: Particle explosions, angle collection animations, and levelup auras
+- **Mobile-Friendly Controls**: Play with mouse clicks or touch on mobile devices
+- **Shop System**: Click-based UI for purchasing upgrades with collected angles
 
-## Story
+## Game Mechanics
 
-In a world of shapes and forms lives Geome, a small triangle full of curiosity and the desire to become something more. He falls in love with Princess Star, who can be bonded only with round shapes, because they don’t disrupt her radiant inner structure.
+### Currency & Resources
 
-Ordinary polygons would harm Princess Star’s offspring, so Geome must transform, become an almost perfect circle, and earn her love.
+- **Angles (⊻)**: Primary currency collected from floating angle pickups and enemy kills
+  - Base collection: 1 angle per pickup + color bonus
+  - Base enemy kill: 2 angles + color bonus
+  - Color upgrade bonus: +1 to +15 angles per collection
 
-The journey is full of challenges, enemies, and obstacles — but Geome believes that love and determination can turn the impossible into reality.
+- **XP**: Experience points earned by defeating enemies
+  - Base XP: 1 per enemy side + sharpness bonus
+  - Sharpness upgrade bonus: +1 to +20 XP per enemy
 
----
+### Leveling
 
-## Tech Stack
+- Each level requires an exponentially increasing amount of XP
+- Formula: `XP Required = baseXP * (multiplier ^ (level - 1))`
+- Base XP for Level 1: 30 XP
+- Multiplier: 3x per level
 
-- HTML, CSS, Vanilla JavaScript
-- Canvas 2D
-- Generative geometric shapes and animations
-- Static hosting (GitHub Pages)
+### Upgrades
 
----
+#### Color Upgrades (Left side of shop)
+| Tier | Name | Cost | Bonus |
+|------|------|------|-------|
+| 1 | Red | 10⊻ | +1 angle |
+| 2 | Orange | 20⊻ | +2 angles |
+| 3 | Gold | 35⊻ | +5 angles |
+| 4 | Turquoise | 55⊻ | +10 angles |
+| 5 | Purple | 80⊻ | +15 angles |
 
-## Current Game Version
+#### Sharpness Upgrades (Right side of shop)
+| Tier | Name | Cost | Bonus |
+|------|------|------|-------|
+| 1 | Sharp | 10⊻ | +1 XP |
+| 2 | Very Sharp | 20⊻ | +2 XP |
+| 3 | Steel | 35⊻ | +5 XP |
+| 4 | Diamond | 55⊻ | +10 XP |
+| 5 | Plasma | 80⊻ | +20 XP |
 
-- **Geome** is represented as a **triangle** drawn on the canvas.
-- The player can make Geome **jump** using:
-  - Space,
-  - Up Arrow,
-  - Mouse click.
-- **Gravity** pulls Geome down, and movement is limited by the **ceiling** and the **floor**.
-- **Obstacles (blocks)** are generated randomly:
-  - top only,
-  - bottom only,
-  - or both (with a gap between them),
-  and move from **right to left**.
-- **Collision detection** between Geome and obstacles is implemented, including **stopping movement on impact** (game over state).
-- Off-screen obstacles are **removed**, and the game runs in an **endless loop**.
-- Geome has a **rotation animation** that stops when a collision happens.
-- The background contains **procedurally generated geometric patterns** with different colors, number of sides, and rotation.
-  - The background is separated from the main scene.
-  - Patterns move in sync with obstacles, are semi-transparent, and are drawn **behind obstacles and the player**.
-
-### Enemies, Collisions, and Score
-
-- The game randomly spawns **enemies** (polygonal shapes) that move from **right to left**.
-- Enemies **do not pass through obstacles**:
-  - they stop when they hit an obstacle,
-  - then “climb” up/down toward the obstacle gap,
-  - once they reach a passable level, they continue moving forward.
-- When the player collides with an enemy, the enemy is removed and the player gains **score based on the enemy’s number of sides**.
-
-### Effects (Kill Animation)
-
-- When an enemy is killed, a **particle effect** is triggered (“shattering into pieces”):
-  - small polygon fragments burst out from the enemy’s position,
-  - fragments have velocity, rotation, gravity, and fade out over time.
-
----
-
-## Future Plans
-
-- **Geome evolution (progression)**
-  - Killing enemies will grant **experience (XP)**.
-  - Reaching XP thresholds will trigger **evolution** (transforming Geome into new shapes / adding sides).
-  - Evolution can unlock new abilities, visuals, or game mechanics.
-
-- **Currency and upgrades**
-  - Introduce an in-game currency called **“angles”**, earned e.g. by defeating enemies, passing obstacles, or completing goals.
-  - “Angles” will be used to buy **upgrades** (e.g. speed, jump strength, size, temporary shields, score/XP bonuses).
-
-- **Game menu / UI**
-  - Add a **game menu** (pause / shop / inventory / evolution tree).
-  - UI for showing **score, XP, angles, current evolution**, and unlocked upgrades.
-
-- **Expanded enemy variety**
-  - More enemy types with richer behavior (faster, tougher, elite variants, different sizes and shapes).
-  - Spawn variety similar to obstacles and background (timing, types, rarity).
-
-- **Combat mechanics and interaction**
-  - Add active abilities (e.g. dash, projectile, shield, time slow).
-  - Interactions with the environment (e.g. destructible obstacles, traps, collectibles).
-
-- **Story and chapters**
-  - Expand the story and chapters (*To Be Animal*, *To Be Human*, and more).
-  - Progress tied to evolution and unlocking shapes/abilities.
-
-- **Visuals and atmosphere**
-  - Further improvements to animations (including hit, evolution, and upgrade effects).
-  - More particle effects and stronger visual mood (color/light work).
-
-- **Modularization and optimization**
-  - More modular structure (separating UI, effects, enemies, progression, saved data).
-  - Performance optimization (particle pooling, more efficient collision handling, fewer allocations in the game loop).
-
----
+#### Shape Upgrades
+- Cost: 10⊻
+- Requirement: Level 2+
+- Effect: Increases player polygon from 3 sides → 4 sides → 5 sides, etc.
 
 ## How to Play
 
-1. Open [GeomeTry](https://tanatos09.github.io/GeomeTry/)
-2. Play and enjoy GeomeTry!
+1. **Jump**: Click/touch the screen or press Space/Arrow Up
+2. **Open Shop**: Click the shop icon in the top-left corner
+3. **Buy Upgrades**: Click on an upgrade to purchase it (if you have enough angles)
+4. **Close Shop**: Click the X button in the top-right of the shop panel
+5. **Objective**: Survive obstacles, defeat enemies, collect angles, and reach higher levels
+
+## Controls
+
+- **Mouse/Touch**: Click to jump or interact with shop
+- **Keyboard**: 
+  - Space / Arrow Up: Jump
+  - U: Buy shape upgrade (legacy)
+
+## Technical Stack
+
+- **Language**: JavaScript (ES6 modules)
+- **Rendering**: HTML5 Canvas 2D Context
+- **Architecture**: Module-based with EntityManager pattern
+- **Physics**: Custom gravity and collision detection
+- **Input**: Mouse/Touch and Keyboard events
+
+## Visual Style
+
+- **Color Scheme**: Cosmic/Space theme with neon colors
+- **Player**: Cyan (#00f0ff) polygon with color upgrades available
+- **Enemies**: Random polygons with red outlines
+- **Background**: Semi-transparent decorative polygons in blues and purples
+- **Effects**: Orange particles for explosions, neon green for highlights
+
+## Browser Compatibility
+
+- Requires ES6 module support
+- Modern Canvas 2D API
+- Works on desktop and mobile browsers
+- Touch-friendly UI for mobile devices
 
 ---
 
-## Contact
+# GeomeTry - Geometrická Arkádová Hra
 
-If you have questions, contact me on [LinkedIn](https://www.linkedin.com/in/tomasfrank/).
+## Přehled
 
----
+GeomeTry je interaktivní arkádová hra, kde hráč ovládá geometrický polygon (začíná jako trojúhelník) a naviguje se skrz překážky, zatímco sbírá létající úhly, aby si koupil vylepšení a dosáhl vyšších úrovní. Hra obsahuje progresivní systém vylepšení se dvěma hlavními cestami: **Barevné upgrady** (pro sběr úhlů) a **Upgrady ostrosti** (pro zisk XP z vražd nepřátel).
 
-*The project is still in development — more information coming soon!*
+## Herní Vlastnosti
 
+- **Progresivní Systém Úrovní**: Získávej XP zabíjením nepřátel a sbírej úhly ze sběru létajících úhlů
+- **Dva Upgrady**:
+  - **Barevné Upgrady**: Rudá → Oranžová → Zlatá → Tyrkysová → Purpurová (zvyšují bonusy sběru úhlů)
+  - **Upgrady Ostrosti**: Ostré → Velmi ostré → Ocelové → Diamantové → Plazmové (zvyšují XP za nepřátele)
+- **Upgrady Tvaru**: Odemkni nové tvary hráče (více stran = komplexnější polygony) na úrovni 2+
+- **Boj s Nepřáteli**: Poraz nepřátele s různými tvary polygonů a získej XP a úhly
+- **Navigace Překážkami**: Vyhýbej se překážkám během pohybu hrou
+- **Vizuální Efekty**: Explozivní částice, animace sběru úhlů, aury levelupu
+- **Mobilní Ovládání**: Hrej pomocí kliknutí myší nebo dotyku na mobilních zařízeních
+- **Systém Obchodu**: Klikací UI pro nákup vylepšení za sbírané úhly
 
+## Herní Mechaniky
 
+### Měna a Zdroje
 
-# GeomeTry: To Be Circle
+- **Úhly (⊻)**: Primární měna sbíraná z létajících sbírek úhlů a z vražd nepřátel
+  - Základní sběr: 1 úhel za sbírku + barevný bonus
+  - Základní nepřítel: 2 úhly + barevný bonus
+  - Barevný bonus: +1 až +15 úhlů za sběr
 
-## O projektu
+- **XP**: Body zkušenosti získané zabíjením nepřátel
+  - Základní XP: 1 za stranu nepřítele + bonus ostrosti
+  - Bonus ostrosti: +1 až +20 XP za nepřítele
 
-**GeomeTry** je minimalistická geometrická hra s RPG a idle prvky, kde hráč ovládá postavu jménem **Geome** — malý trojúhelník, který se snaží stát téměř dokonalým kruhem.
+### Levelování
 
-Cílem hry je postupným přidáváním hran transformovat Geomea od trojúhelníku přes čtverec, pětiúhelník až po téměř kruh.
+- Každá úroveň vyžaduje exponenciálně rostoucí množství XP
+- Formule: `XP Potřebný = základníXP * (násobitel ^ (úroveň - 1))`
+- Základní XP pro Úroveň 1: 30 XP
+- Násobitel: 3x za úroveň
 
----
+### Upgrady
 
-## Příběh
+#### Barevné Upgrady (Levá strana obchodu)
+| Úroveň | Název | Cena | Bonus |
+|--------|-------|------|-------|
+| 1 | Rudá | 10⊻ | +1 úhel |
+| 2 | Oranžová | 20⊻ | +2 úhly |
+| 3 | Zlatá | 35⊻ | +5 úhlů |
+| 4 | Tyrkysová | 55⊻ | +10 úhlů |
+| 5 | Purpurová | 80⊻ | +15 úhlů |
 
-Ve světě tvarů a forem žije Geome, malý trojúhelník plný zvědavosti a touhy stát se něčím víc. Zamiluje se do princezny Hvězdy, která může být spojena jen s kulatými tvary, protože ty nenarušují její zářivou vnitřní strukturu.
+#### Upgrady Ostrosti (Pravá strana obchodu)
+| Úroveň | Název | Cena | Bonus |
+|--------|-------|------|-------|
+| 1 | Ostré | 10⊻ | +1 XP |
+| 2 | Velmi ostré | 20⊻ | +2 XP |
+| 3 | Ocelové | 35⊻ | +5 XP |
+| 4 | Diamantové | 55⊻ | +10 XP |
+| 5 | Plazmové | 80⊻ | +20 XP |
 
-Obyčejné mnohouhelníky by poškodily potomky princezny Hvězdy, a proto Geome musí projít proměnou, stát se téměř dokonalým kruhem a tím získat její lásku.
+#### Upgrady Tvaru
+- Cena: 10⊻
+- Požadavek: Úroveň 2+
+- Efekt: Zvýší polygon hráče z 3 stran → 4 strany → 5 stran, atd.
 
-Cesta je plná výzev, nepřátel a překážek, ale Geome věří, že láska a snaha dokážou změnit nemožné.
+## Jak Hrát
 
----
+1. **Skok**: Klikni/dotykni obrazovku nebo stiskni Space/Šipka Nahoru
+2. **Otevři Obchod**: Klikni na ikonu obchodu v levém horním rohu
+3. **Kupuj Upgrady**: Klikni na upgrade, který chceš koupit (pokud máš dost úhlů)
+4. **Zavři Obchod**: Klikni na tlačítko X v pravém horním rohu panelu obchodu
+5. **Cíl**: Přežij překážky, poraz nepřátele, sbírej úhly a dosáhni vyšších úrovní
 
-## Technologie
+## Ovládání
 
-- HTML, CSS, Vanilla JavaScript
-- Canvas 2D
-- Generativní geometrické tvary a animace
-- Statický hosting (GitHub Pages)
+- **Myš/Dotyk**: Klikni na skok nebo interakci s obchodem
+- **Klávesnice**:
+  - Mezerník / Šipka Nahoru: Skok
+  - U: Kup upgrade tvaru (legacy)
 
----
+## Technický Stack
 
-## Aktuální verze hry
+- **Jazyk**: JavaScript (ES6 moduly)
+- **Vykreslování**: HTML5 Canvas 2D Context
+- **Architektura**: Modulární s vzorem EntityManager
+- **Fyzika**: Vlastní gravitace a detekce kolizí
+- **Vstup**: Události myši/dotyku a klávesnice
 
-- **Geome** je reprezentovaný jako **trojúhelník** vykreslený na canvasu.
-- Hráč může Geomeho **skákat** pomocí:
-  - mezerníku,
-  - šipky nahoru,
-  - kliknutí myší.
-- **Gravitace** táhne Geomeho dolů a pohyb je omezen **stropem** a **podlahou**.
-- **Překážky (bloky)** se generují náhodně:
-  - jen nahoře,
-  - jen dole,
-  - nebo nahoře i dole (s mezerou mezi nimi),
-  a posouvají se **zprava doleva**.
-- Probíhá **detekce kolizí** mezi Geomem a překážkami, včetně **zastavení pohybu při nárazu** (game over stav).
-- Překážky mimo obrazovku se **odstraňují** a hra běží v **nekonečné smyčce**.
-- **Animace rotace** Geoma se při kolizi zastaví.
-- Na pozadí se generují **geometrické vzory** s různými barvami, počtem hran a rotací.
-  - Pozadí je oddělené od hlavní scény.
-  - Vzory se pohybují synchronně s překážkami, jsou průhledné a vykreslené **pod překážkami i hráčem**.
+## Vizuální Styl
 
-### Nepřátelé, kolize a skóre
+- **Barevné Schéma**: Kosmické/Space téma s neonovými barvami
+- **Hráč**: Azurový (#00f0ff) polygon s dostupnými barevnými upgrady
+- **Nepřátelé**: Náhodné polygony s červenými obrysy
+- **Pozadí**: Semi-průhledné dekorativní polygony v modrých a fialových tónech
+- **Efekty**: Oranžové částice na exploze, neonově zelené na zvýraznění
 
-- Ve hře se náhodně generují **nepřátelé** (polygonální tvary), kteří se pohybují **z pravé strany doleva**.
-- Nepřátelé při kontaktu s překážkou **neprocházejí skrz**:
-  - zastaví se o překážku,
-  - následně „lezou“ nahoru/dolů směrem do mezery (gap),
-  - jakmile se dostanou na úroveň průchodu, pokračují dál v pohybu.
-- Při kolizi hráče s nepřítelem je nepřítel odstraněn a hráči se přičte **skóre podle počtu stran nepřítele**.
+## Kompatibilita Prohlížečů
 
-### Efekty (animace zabití)
-
-- Po zabití nepřítele se spustí **částicová animace** („roztrhání na kousky“):
-  - z místa nepřítele se rozletí malé polygonální střepy,
-  - střepy mají rychlost, rotaci, gravitaci a postupně zanikají.
-
----
-
-## Plán do budoucna
-
-- **Evoluce Geomea (progression)**
-  - Při zabití nepřítele se budou přičítat **zkušenosti (XP)**.
-  - Po dosažení prahů XP dojde k **evoluci** (transformaci Geomea do dalších tvarů / přidávání hran).
-  - Evoluce může odemykat nové schopnosti, vzhled, nebo herní mechaniky.
-
-- **Měna a vylepšení**
-  - Zavedení herní měny **„úhly“**, získávané např. zabíjením nepřátel, průchodem překážek nebo plněním cílů.
-  - „Úhly“ budou sloužit k nákupu **upgradů** (např. rychlost, skok, velikost, dočasné štíty, bonusy ke skóre/XP).
-
-- **Herní menu / UI**
-  - Přidání **herního menu** (pauza / obchod / inventář / strom evoluce).
-  - UI pro zobrazení **skóre, XP, úhlů, aktuální evoluce** a odemčených vylepšení.
-
-- **Rozšíření nepřátel**
-  - Další typy nepřátel s rozšířeným chováním (rychlejší, těžší, „elite“, různé velikosti a tvary).
-  - Variace spawnování podobně jako u překážek a pozadí (časování, typy, rarity).
-
-- **Bojové mechaniky a interakce**
-  - Přidání aktivních schopností (např. dash, střela, štít, zpomalení času).
-  - Interakce s okolím (např. zničitelné překážky, pasti, sběratelné objekty).
-
-- **Příběh a kapitoly**
-  - Rozšíření příběhu a herních kapitol (*To Be Animal*, *To Be Human* a další).
-  - Postup hrou navázaný na evoluci a odemykání tvarů/schopností.
-
-- **Vizuální efekty a atmosféra**
-  - Další vylepšení animací (včetně efektů při zásahu, evoluci a vylepšeních).
-  - Rozšíření částicových efektů a práce se světlem/barvami pro výraznější atmosféru.
-
-- **Modularizace a optimalizace**
-  - Další modularizace (oddělení UI, efektů, nepřátel, progresu, uložených dat).
-  - Optimalizace výkonu (particle pooling, efektivnější kolize, méně alokací v game loop).
-
----
-
-## Jak spustit
-
-1. Otevři [GeomeTry](https://tanatos09.github.io/GeomeTry/)
-2. Hraj a užívej si GeomeTry!
-
----
-
-## Kontakt
-
-Pokud máš dotazy, kontaktuj mě na [LinkedIn](https://www.linkedin.com/in/tomasfrank/).
-
----
-
-*Projekt je stále ve vývoji — více informací brzy!*
+- Vyžaduje podporu ES6 modulů
+- Moderní Canvas 2D API
+- Funguje na stolních i mobilních prohlížečích
+- Přívětivé dotyku UI pro mobilní zařízení
