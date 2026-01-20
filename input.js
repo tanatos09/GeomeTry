@@ -10,6 +10,19 @@ import { levelSystem } from './leveling.js';
 import { shopSystem } from './shop.js';
 import { toggleShop, shopOpen } from './render.js';
 
+// Detekce mobilního zařízení
+const isMobileDevice = () => {
+  return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+// Helper funkce pro detekci kliknutí v obdélníku s tolerancí
+function isClickInRect(x, y, rect, tolerance = 0) {
+  return x >= rect.x - tolerance && 
+         x <= rect.x + rect.w + tolerance && 
+         y >= rect.y - tolerance && 
+         y <= rect.y + rect.h + tolerance;
+}
+
 // ============================================================
 // FUNKCE: setupInput()
 // Účel: Inicializuje všechny posluchače pro vstup hráče
@@ -88,4 +101,40 @@ export function setupInput() {
       });
     }
   });
+  
+  // ========== TOUCH SUPPORT PRO MOBILNÍ ZAŘÍZENÍ ==========
+  // Podpora dotykového ovládání pro tablety a telefony
+  const isMobileDevice = () => {
+    return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+  
+  if (isMobileDevice()) {
+    window.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      
+      const canvas = document.getElementById('game');
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      
+      import('./render.js').then(render => {
+        // Zvětšená tolerance pro dotyky
+        const tolerance = 20;
+        if (render.shopOpen || (render.uiButtons.shopButton && 
+            x >= render.uiButtons.shopButton.x - tolerance && 
+            x <= render.uiButtons.shopButton.x + render.uiButtons.shopButton.w + tolerance &&
+            y >= render.uiButtons.shopButton.y - tolerance && 
+            y <= render.uiButtons.shopButton.y + render.uiButtons.shopButton.h + tolerance)) {
+          render.handleUIClick(x, y);
+        } else {
+          jump();
+        }
+      });
+    }, false);
+    
+    window.addEventListener("touchend", (e) => {
+      e.preventDefault();
+    }, false);
+  }
 }

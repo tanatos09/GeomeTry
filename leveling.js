@@ -53,7 +53,7 @@ export const levelSystem = {
   
   // Základní XP potřebný k levelupu na level 2
   // Vyšší levely budou potřebovat exponenciálně více
-  baseXPForLevel: 30,
+  baseXPForLevel: 300,
   
   // Multiplikátor exponenciálního vzorce
   // Každý level bude potřebovat 3x více XP než předchozí

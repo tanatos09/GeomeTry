@@ -128,7 +128,7 @@ export const shopSystem = {
   getPlayerColor() {
     // Pokud není koupen upgrade (level 0), vrátí základní azurovou
     if (this.selectedColorLevel === 0) {
-      return '#00f0ff';  // Kyanová (základní)
+      return '#ffee00';  // Kyanová (základní)
     }
     
     // Jinak vrátí barvu vybraného upgradu

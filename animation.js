@@ -16,7 +16,7 @@ import { geome } from "./player.js";
 // ============================================================
 export function updateAnimation(isColliding) {
   // ========== RYCHLOST ROTACE ==========
-  const rotationSpeed = 0.1; // Radiány za snímek (0.1 = ~5.7°)
+  const rotationSpeed = 0.06; // Radiány za snímek (0.05 = ~2.9°)
   // Vyšší číslo = rychlejší rotace
   
   // ========== PODMÍNKA: Rotace jen když nenarazíme ==========

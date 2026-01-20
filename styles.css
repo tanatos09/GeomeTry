@@ -3,6 +3,10 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
 }
 
 html, body, canvas {
@@ -15,5 +19,47 @@ body {
     overflow: hidden;
     background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #0f3460 100%);
     font-family: 'Arial', sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+canvas {
+    display: block;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+/* Mobile optimalizace */
+@media (max-width: 768px) {
+    html, body, canvas {
+        width: 100vw;
+        height: 100vh;
+        max-width: 100%;
+        max-height: 100%;
+    }
+    
+    body {
+        position: fixed;
+        top: 0;
+        left: 0;
+        margin: 0;
+        padding: 0;
+    }
+    
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+    }
+}
+
+/* Extra malé displeje (telefony na výšku) */
+@media (max-width: 480px) {
+    canvas {
+        width: 100vw;
+        height: 100vh;
+    }
 }
 

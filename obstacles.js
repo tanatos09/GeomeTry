@@ -12,19 +12,25 @@ export const obstacles = []; // Pole všech aktivních překážek na obrazovce
 let frameCount = 0; // Počítadlo snímků (pro kontrolu kdy generovat nové překážky)
 
 // ============================================================
-// FUNKCE: generateObstacles(canvasWidth, canvasHeight, floorHeight)
+// FUNKCE: generateObstacles(canvasWidth, canvasHeight, floorHeight, isColliding)
 // Účel: Generuje nové překážky v určitých intervalech
 // Parametry:
 //   - canvasWidth: šířka canvasu (překážky se generují vpravo)
 //   - canvasHeight: výška canvasu (pro výpočet mezer)
 //   - floorHeight: výška podlahy (součást maxY výpočtu)
+//   - isColliding: boolean - pokud true, nepokračuje v generování
 // ============================================================
-export function generateObstacles(canvasWidth, canvasHeight, floorHeight) {
+export function generateObstacles(canvasWidth, canvasHeight, floorHeight, isColliding) {
+  // ========== GENEROVÁNÍ JEN POKUD NENARAZÍME ==========
+  if (isColliding) {
+    return; // Zastavíme generování když je v kolizi
+  }
+  
   // ========== INTERVAL GENEROVÁNÍ ==========
   frameCount++; // Zvýšíme počítadlo snímků
   
-  // Každých 100 snímků (~1.6s při 60 FPS) vytvoříme novou překážku
-  if (frameCount % 100 === 0) {
+  // Každých 150 snímků (~2.5s při 60 FPS) generujeme novou překážku
+  if (frameCount % 150 === 0) {
     
     // ========== NÁHODNÝ TYP PŘEKÁŽKY ==========
     // Existují 3 typy:

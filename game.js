@@ -12,7 +12,7 @@ import { obstacles, generateObstacles, moveObstacles, removeOffscreenObstacles }
 import { checkCollision } from './collision.js'; // Detekce kolizí hráče a překážek
 import { drawGame } from './render.js'; // Funkce pro vykreslení všech herních prvků
 import { setupInput } from './input.js'; // Nastavení ovládání
-import { config } from './config.js'; // Konfigurace hry (gravity, obstacleGap, apod.)
+import { config, updateConfigForScreen } from './config.js'; // Konfigurace hry (gravity, obstacleGap, apod.)
 import { updateAnimation } from './animation.js'; // Animace rotace hráče
 import { generatePatterns, movePatterns, removeOffscreenPatterns, drawPatterns } from './background.js'; // Pozadí
 import { generateEnemies, moveEnemies, removeOffscreenEnemies, drawEnemies, checkEnemyCollision } from './enemies.js'; // Nepřátelé
@@ -36,6 +36,9 @@ function resize() {
   // Nastavíme canvas na plnou velikost okna
   width = canvas.width = window.innerWidth;
   height = canvas.height = window.innerHeight;
+  
+  // Aktualizujeme config parametry podle aktuální velikosti okna
+  updateConfigForScreen(width);
   
   // Inicializujeme hráče na novou velikost okna
   initPlayer(width, height);
@@ -84,7 +87,7 @@ function gameLoop() {
   // ========== FÁZE 3: PŘEKÁŽKY ==========
   
   // Generujeme nové překážky (náhodně každých ~100 snímků)
-  generateObstacles(width, height, config.floorHeight);
+  generateObstacles(width, height, config.floorHeight, isColliding);
   
   // Posouváme překážky doleva (zastavíme při kolizi)
   moveObstacles(isColliding);

@@ -24,6 +24,19 @@ const canvas = document.getElementById('game');
 export const ctx = canvas.getContext('2d');   // Exportujeme ctx pro ostatní soubory
 
 // ===================================================================
+// MOBILNÍ OPTIMALIZACE - Helper funkce
+// ===================================================================
+export const isMobileDevice = () => {
+  return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+export const getUIScale = (canvasWidth) => {
+  if (canvasWidth < 480) return 0.6;
+  if (canvasWidth < 768) return 0.8;
+  return 1.0;
+};
+
+// ===================================================================
 // SHOP STATE - Sledování stavu obchodu
 // ===================================================================
 // shopOpen: boolean - Jestli je shop panel viditelný (true = otevřen)
@@ -360,122 +373,111 @@ export function drawGame(canvasWidth, canvasHeight) {
 function drawUI(canvasWidth, canvasHeight) {
   // Zjisti aktuální stav hráče (level, XP, nepřátelé, úhly, atd.)
   const status = levelSystem.getStatus();
-  const padding = 20;        // Odsazení od okraje canvasu
-  const lineHeight = 25;     // Výška jedné textové řádky
+  const isMobile = isMobileDevice();
+  
+  let padding = isMobile ? 10 : 20;
+  let lineHeight = isMobile ? 20 : 25;
+  let textSize = isMobile ? 12 : 14;
+  let titleSize = isMobile ? 14 : 20;
   
   // ===== LEVÝ HORNÍ PANEL - INFORMACE O HRÁČI =====
-  // Tmavý background panel s kosmickým stylem
-  ctx.fillStyle = 'rgba(10, 20, 40, 0.8)';     // Tmavá modrá, poloprůhledná
-  ctx.fillRect(padding - 5, padding - 5, 320, 160);  // Obdélník panelu
+  const panelWidth = isMobile ? Math.min(280, canvasWidth - 20) : 320;
+  const panelHeight = isMobile ? 140 : 160;
   
-  // Glowing border kolem panelu
-  ctx.strokeStyle = 'rgba(100, 200, 255, 0.5)';  // Světle modrá
-  ctx.lineWidth = 2;
-  ctx.strokeRect(padding - 5, padding - 5, 320, 160);
+  ctx.fillStyle = 'rgba(10, 20, 40, 0.8)';
+  ctx.fillRect(padding - 5, padding - 5, panelWidth, panelHeight);
   
-  // Nastavení stylu textu
-  ctx.fillStyle = '#00f0ff';                     // Kyanová barva
-  ctx.font = 'bold 20px Arial';
+  ctx.strokeStyle = 'rgba(100, 200, 255, 0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(padding - 5, padding - 5, panelWidth, panelHeight);
+  
+  ctx.fillStyle = '#00f0ff';
+  ctx.font = `bold ${titleSize}px Arial`;
   ctx.textAlign = 'left';
   
-  // ===== TEXT - LEVEL S IKONOU =====
-  ctx.fillText(`⬢ Level: ${status.level}`, padding, padding + 25);
+  ctx.fillText(`⬢ Level: ${status.level}`, padding, padding + 20);
   
-  // ===== TEXT - POČET ZABITÍ NEPŘÁTEL =====
-  ctx.font = '14px Arial';
-  ctx.fillStyle = '#88ddff';                     // Světlejší modrá
-  ctx.fillText(`◆ Enemies: ${status.enemiesKilled}`, padding, padding + 50);
+  ctx.font = `${textSize}px Arial`;
+  ctx.fillStyle = '#88ddff';
+  ctx.fillText(`◆ Enemies: ${status.enemiesKilled}`, padding, padding + 40);
   
-  // ===== TEXT - POČET SBÍRANÝCH ÚHLŮ =====
-  ctx.fillStyle = '#ffaa00';                     // Oranžová
-  ctx.fillText(`⊻ Angles: ${status.angles}`, padding, padding + 75);
+  ctx.fillStyle = '#ffaa00';
+  ctx.fillText(`⊻ Angles: ${status.angles}`, padding, padding + 60);
   
-  // ===== TEXT - PROGRESS NA DALŠÍ LEVEL =====
-  ctx.fillStyle = '#00f0ff';                     // Kyanová
-  ctx.fillText(`✦ XP: ${status.xp}/${status.requiredXP}`, padding, padding + 100);
+  ctx.fillStyle = '#00f0ff';
+  ctx.fillText(`✦ XP: ${status.xp}/${status.requiredXP}`, padding, padding + 80);
   
   // ===== XP PROGRESS BAR =====
-  const barWidth = 300;
-  const barHeight = 20;
+  const barWidth = isMobile ? panelWidth - 10 : 300;
+  const barHeight = isMobile ? 12 : 20;
   const barX = padding;
-  const barY = padding + 120;
+  const barY = padding + 95;
   
-  // Tmavé pozadí baru
   ctx.fillStyle = 'rgba(30, 50, 80, 0.8)';
   ctx.fillRect(barX, barY, barWidth, barHeight);
   
-  // Gradient pro vyplnění baru (přechod ze světlé do zelenavé)
   const barGradient = ctx.createLinearGradient(barX, 0, barX + barWidth * status.progress / 100, 0);
-  barGradient.addColorStop(0, '#00ddff');       // Kyanová
-  barGradient.addColorStop(1, '#00ffaa');       // Zelená
+  barGradient.addColorStop(0, '#00ddff');
+  barGradient.addColorStop(1, '#00ffaa');
   ctx.fillStyle = barGradient;
-  
-  // Vyplni bar - proporcionálně podle progress (0-100%)
   ctx.fillRect(barX, barY, (barWidth * status.progress) / 100, barHeight);
   
-  // Border kolem baru
   ctx.strokeStyle = '#00f0ff';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1;
   ctx.strokeRect(barX, barY, barWidth, barHeight);
   
-  // ===== PRAVÝ HORNÍ PANEL - UPGRADE INFO =====
-  const upgradeX = canvasWidth - 320;
-  const upgradeY = padding;
-  
-  // Tmavý background
-  ctx.fillStyle = 'rgba(10, 20, 40, 0.8)';
-  ctx.fillRect(upgradeX - 5, upgradeY - 5, 310, 110);
-  
-  // Glowing border (oranžový tón)
-  ctx.strokeStyle = 'rgba(255, 170, 0, 0.5)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(upgradeX - 5, upgradeY - 5, 310, 110);
-  
-  // Nadpis
-  ctx.fillStyle = '#ffbb00';                     // Oranžová
-  ctx.font = 'bold 16px Arial';
-  ctx.textAlign = 'left';
-  ctx.fillText('⬡ Upgrade Shop', upgradeX, upgradeY + 25);
-  
-  // Aktuální tvar hráče
-  ctx.fillStyle = '#ddddff';                     // Světle fialová
-  ctx.font = '14px Arial';
-  ctx.fillText(`Shape: ${status.sides}-gon`, upgradeX, upgradeY + 50);
-  
-  // Cena pro další upgrade tvaru
-  ctx.fillText(`Cost: ${status.nextUpgradeCost} ⊻`, upgradeX, upgradeY + 75);
-  
-  // Informace o dostupnosti upgradu
-  if (status.angles >= status.nextUpgradeCost && status.level >= 2) {
-    ctx.fillStyle = '#00ff99';                   // Zelená - dostupné
-    ctx.fillText('→ [SHOP]', upgradeX, upgradeY + 100);
-  } else {
-    ctx.fillStyle = '#ff7777';                   // Červená - není dostupné
-    ctx.fillText(`Need lvl 2+ or ${status.nextUpgradeCost - status.angles} more`, upgradeX, upgradeY + 100);
+  // ===== PRAVÝ HORNÍ PANEL - UPGRADE INFO (SKRYT NA VELMI MALÝCH DISPLEJÍCH) =====
+  if (!isMobile || canvasWidth > 500) {
+    const upgradeWidth = isMobile ? Math.min(260, canvasWidth - padding * 2 - panelWidth - 10) : 310;
+    const upgradeX = canvasWidth - upgradeWidth - padding;
+    const upgradeY = padding;
+    
+    ctx.fillStyle = 'rgba(10, 20, 40, 0.8)';
+    ctx.fillRect(upgradeX - 5, upgradeY - 5, upgradeWidth, 110);
+    
+    ctx.strokeStyle = 'rgba(255, 170, 0, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(upgradeX - 5, upgradeY - 5, upgradeWidth, 110);
+    
+    ctx.fillStyle = '#ffbb00';
+    ctx.font = `bold ${isMobile ? 12 : 16}px Arial`;
+    ctx.textAlign = 'left';
+    ctx.fillText('⬡ Upgrade Shop', upgradeX, upgradeY + 20);
+    
+    ctx.fillStyle = '#ddddff';
+    ctx.font = `${isMobile ? 10 : 14}px Arial`;
+    ctx.fillText(`Shape: ${status.sides}-gon`, upgradeX, upgradeY + 45);
+    
+    ctx.fillText(`Cost: ${status.nextUpgradeCost} ⊻`, upgradeX, upgradeY + 65);
+    
+    if (status.angles >= status.nextUpgradeCost && status.level >= 2) {
+      ctx.fillStyle = '#00ff99';
+      ctx.fillText('→ [SHOP]', upgradeX, upgradeY + 85);
+    } else {
+      ctx.fillStyle = '#ff7777';
+      ctx.font = `${isMobile ? 8 : 12}px Arial`;
+      ctx.fillText(`Need lvl 2+ or ${status.nextUpgradeCost - status.angles} more`, upgradeX, upgradeY + 85);
+    }
   }
   
   // ===== SHOP TLAČÍTKO - LEVÝ DOLNÍ ROH =====
   const shopButtonX = padding;
-  const shopButtonY = canvasHeight - 50;
-  const shopButtonW = 120;
-  const shopButtonH = 40;
+  const shopButtonY = canvasHeight - (isMobile ? 45 : 50);
+  const shopButtonW = isMobile ? 90 : 120;
+  const shopButtonH = isMobile ? 35 : 40;
   
-  // Změň barvu tlačítka podle toho jestli je shop otevřen
   ctx.fillStyle = shopOpen ? 'rgba(100, 200, 255, 0.8)' : 'rgba(50, 100, 150, 0.6)';
   ctx.fillRect(shopButtonX, shopButtonY, shopButtonW, shopButtonH);
   
-  // Border tlačítka
   ctx.strokeStyle = shopOpen ? '#00ffff' : '#0088ff';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
   ctx.strokeRect(shopButtonX, shopButtonY, shopButtonW, shopButtonH);
   
-  // Text na tlačítku
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 14px Arial';
+  ctx.font = `bold ${isMobile ? 11 : 14}px Arial`;
   ctx.textAlign = 'center';
-  ctx.fillText('SHOP', shopButtonX + shopButtonW / 2, shopButtonY + 28);
+  ctx.fillText('SHOP', shopButtonX + shopButtonW / 2, shopButtonY + shopButtonH / 2 + 5);
   
-  // Ulož souřadnice shop tlačítka (potřeba pro detekci kliknutí)
   uiButtons.shopButton = { x: shopButtonX, y: shopButtonY, w: shopButtonW, h: shopButtonH };
   
   // ===== POKUD JE SHOP OTEVŘEN, NAKRESLI JEJ =====
@@ -496,7 +498,7 @@ function drawUI(canvasWidth, canvasHeight) {
 // sides: počet stran polygonu
 // rotation: rotace polygonu
 // color: základní barva hráče (default kyanová)
-function drawPlayerWithGlow(x, y, radius, sides, rotation, color = '#00f0ff') {
+function drawPlayerWithGlow(x, y, radius, sides, rotation, color = '#eeff00') {
   // Zjisti intenzitu aury (0-1, 0 = není vidět, 1 = plná intenzita)
   const alpha = levelSystem.getLevelUpAuraAlpha();
   
@@ -586,17 +588,32 @@ function drawLevelUpAura(x, y, baseRadius) {
 // canvasWidth, canvasHeight: rozměry canvasu
 function drawShopUI(canvasWidth, canvasHeight) {
   const status = levelSystem.getStatus();
+  const isMobile = isMobileDevice();
   
   // ===== POTEMŇUJÍCÍ OVERLAY =====
   // Zčernout všecho mimo shop panel aby byla vidět lépe
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
   
-  // ===== CENTRÁLNÍ SHOP PANEL =====
-  const panelWidth = 900;     // Šířka panelu
-  const panelHeight = 700;    // Výška panelu
-  const panelX = (canvasWidth - panelWidth) / 2;   // Centruj horizontálně
-  const panelY = (canvasHeight - panelHeight) / 2; // Centruj vertikálně
+  // ===== URČENÍ PANELU ROZMĚRŮ NA ZÁKLADĚ OBRAZOVKY =====
+  let panelWidth, panelHeight, panelX, panelY;
+  
+  if (canvasWidth < 480) {
+    // Mobile portrait: Vertikální layout - full width, scrollable
+    panelWidth = Math.min(350, canvasWidth - 20);
+    panelHeight = Math.min(800, canvasHeight - 40);
+  } else if (canvasWidth < 768) {
+    // Tablet: Kompaktnější 2-sloupec, stále responsive
+    panelWidth = Math.min(500, canvasWidth - 30);
+    panelHeight = Math.min(650, canvasHeight - 60);
+  } else {
+    // Desktop: Původní rozměry
+    panelWidth = 900;
+    panelHeight = 700;
+  }
+  
+  panelX = (canvasWidth - panelWidth) / 2;
+  panelY = (canvasHeight - panelHeight) / 2;
   
   // Background panelu - tmavý s průhledností
   ctx.fillStyle = 'rgba(10, 20, 40, 0.95)';
@@ -607,16 +624,17 @@ function drawShopUI(canvasWidth, canvasHeight) {
   ctx.lineWidth = 3;
   ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
   
-  // ===== NADPIS SHOPU =====
+  // ===== NADPIS SHOPU S DYNAMICKÝMI ROZMĚRY =====
+  let titleSize = isMobile ? (canvasWidth < 480 ? 18 : 22) : 28;
   ctx.fillStyle = '#00ffff';
-  ctx.font = 'bold 28px Arial';
+  ctx.font = `bold ${titleSize}px Arial`;
   ctx.textAlign = 'center';
-  ctx.fillText('✦ SHOP ✦', canvasWidth / 2, panelY + 40);
+  ctx.fillText('✦ SHOP ✦', canvasWidth / 2, panelY + 35);
   
   // ===== TLAČÍTKO ZAVŘENÍ (X) - VPRAVO NAHOŘE =====
-  const closeX = panelX + panelWidth - 35;
-  const closeY = panelY + 10;
-  const closeSize = 25;
+  const closeX = panelX + panelWidth - 25;
+  const closeY = panelY + 15;
+  const closeSize = 20;
   
   // Background tlačítka - lehce viditelný
   ctx.fillStyle = 'rgba(255, 100, 100, 0.3)';
@@ -637,6 +655,311 @@ function drawShopUI(canvasWidth, canvasHeight) {
   // Ulož souřadnice close tlačítka (pro detekci kliknutí)
   uiButtons.closeButton = { x: closeX - 12, y: closeY - 12, w: 24, h: 24 };
   
+  // ===== LAYOUT LOGIKA PODLE ŠÍŘKY OBRAZOVKY =====
+  if (canvasWidth < 480) {
+    // MOBILNÍ VERTIKÁLNÍ LAYOUT - Všechno pod sebou
+    drawShopMobileVertical(panelX, panelY, panelWidth, panelHeight);
+  } else if (canvasWidth < 768) {
+    // TABLET LAYOUT - Kompaktnější 2-sloupec
+    drawShopTablet(panelX, panelY, panelWidth, panelHeight);
+  } else {
+    // DESKTOP LAYOUT - Původní 2-sloupec vedle sebe
+    drawShopDesktop(panelX, panelY, panelWidth, panelHeight);
+  }
+}
+
+// ===================================================================
+// RESPONSIVE SHOP LAYOUTS - HELPER FUNKCE
+// ===================================================================
+
+// MOBILNÍ VERTIKÁLNÍ LAYOUT (< 480px)
+function drawShopMobileVertical(panelX, panelY, panelWidth, panelHeight) {
+  const status = levelSystem.getStatus();
+  const padding = 10;
+  const startY = panelY + 50;
+  
+  // Barevné upgrady
+  ctx.fillStyle = '#ff9f43';
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('⬢ Colors', panelX + padding, startY);
+  
+  const colorBtnWidth = panelWidth - 2 * padding;
+  const colorBtnHeight = 24;
+  
+  for (let i = 0; i < 5; i++) {
+    const upgrade = shopSystem.colorUpgrades[i];
+    const y = startY + 20 + i * 30;
+    
+    const isBought = shopSystem.selectedColorLevel > i;
+    const isAffordable = status.angles >= shopSystem.getColorUpgradeCost(i + 1);
+    const isSelected = shopSystem.selectedColorLevel === i + 1;
+    const isLevelLocked = (i + 1) > (status.level - 1);
+    
+    // Barva pozadí
+    if (isLevelLocked) {
+      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
+    } else if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
+    } else if (isSelected) {
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.3)';
+    } else if (isAffordable) {
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
+    } else {
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+    }
+    
+    ctx.fillRect(panelX + padding, y, colorBtnWidth, colorBtnHeight);
+    
+    // Border
+    let borderColor = '#666666';
+    if (isLevelLocked) borderColor = '#444444';
+    if (isBought) borderColor = '#00ff64';
+    if (isSelected) borderColor = '#00ffff';
+    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#0088ff';
+    
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(panelX + padding, y, colorBtnWidth, colorBtnHeight);
+    
+    // Text
+    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    ctx.font = '9px Arial';
+    ctx.textAlign = 'left';
+    
+    const costStr = `${shopSystem.getColorUpgradeCost(i + 1)}⊻`;
+    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    ctx.fillText(`${upgrade.name.substring(0, 10)} ${statusStr} ${costStr}`, panelX + padding + 3, y + 15);
+    
+    uiButtons.colorUpgrades[i] = { x: panelX + padding, y: y, w: colorBtnWidth, h: colorBtnHeight };
+  }
+  
+  // Upgrady ostrosti
+  const sharpnessStartY = startY + 175;
+  ctx.fillStyle = '#ff6b9d';
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('◆ Sharpness', panelX + padding, sharpnessStartY);
+  
+  for (let i = 0; i < 5; i++) {
+    const upgrade = shopSystem.sharpnessUpgrades[i];
+    const y = sharpnessStartY + 20 + i * 30;
+    
+    const isBought = shopSystem.selectedSharpnessLevel > i;
+    const isAffordable = status.angles >= shopSystem.getSharpnessUpgradeCost(i + 1);
+    const isSelected = shopSystem.selectedSharpnessLevel === i + 1;
+    const isLevelLocked = (i + 1) > (status.level - 1);
+    
+    if (isLevelLocked) {
+      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
+    } else if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
+    } else if (isSelected) {
+      ctx.fillStyle = 'rgba(255, 100, 150, 0.3)';
+    } else if (isAffordable) {
+      ctx.fillStyle = 'rgba(255, 150, 200, 0.2)';
+    } else {
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+    }
+    
+    ctx.fillRect(panelX + padding, y, colorBtnWidth, colorBtnHeight);
+    
+    let borderColor = '#666666';
+    if (isLevelLocked) borderColor = '#444444';
+    if (isBought) borderColor = '#00ff64';
+    if (isSelected) borderColor = '#ff6b9d';
+    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#ff9fbf';
+    
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(panelX + padding, y, colorBtnWidth, colorBtnHeight);
+    
+    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    ctx.font = '9px Arial';
+    ctx.textAlign = 'left';
+    
+    const costStr = `${shopSystem.getSharpnessUpgradeCost(i + 1)}⊻`;
+    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    ctx.fillText(`${upgrade.name.substring(0, 10)} ${statusStr} ${costStr}`, panelX + padding + 3, y + 15);
+    
+    uiButtons.sharpnessUpgrades[i] = { x: panelX + padding, y: y, w: colorBtnWidth, h: colorBtnHeight };
+  }
+  
+  // Shape upgrade - kompaktnější
+  const shapeY = sharpnessStartY + 175;
+  ctx.fillStyle = '#ffdd00';
+  ctx.font = 'bold 10px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('⬟ Shape', panelX + panelWidth / 2, shapeY);
+  
+  const shapeBtnX = panelX + padding;
+  const shapeBtnY = shapeY + 10;
+  const shapeBtnW = colorBtnWidth;
+  const shapeBtnH = 24;
+  
+  const shapeUpgradeCost = levelSystem.upgradeCost;
+  const canBuyShape = levelSystem.currentLevel >= 2 && levelSystem.angles >= shapeUpgradeCost;
+  
+  ctx.fillStyle = canBuyShape ? 'rgba(255, 200, 50, 0.2)' : 'rgba(100, 100, 100, 0.1)';
+  ctx.fillRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
+  
+  ctx.strokeStyle = canBuyShape ? '#ffdd00' : '#666666';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
+  
+  ctx.fillStyle = canBuyShape ? '#ffffff' : '#888888';
+  ctx.font = '8px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${levelSystem.playerSides}-gon → ${levelSystem.playerSides + 1}-gon (${shapeUpgradeCost}⊻)`, panelX + panelWidth / 2, shapeBtnY + 15);
+  
+  uiButtons.shapeUpgradeButton = { x: shapeBtnX, y: shapeBtnY, w: shapeBtnW, h: shapeBtnH };
+}
+
+// TABLET LAYOUT (480px - 768px)
+function drawShopTablet(panelX, panelY, panelWidth, panelHeight) {
+  const status = levelSystem.getStatus();
+  const padding = 12;
+  const startY = panelY + 50;
+  const colWidth = (panelWidth - 3 * padding) / 2;
+  
+  // Levý sloupec - barevné upgrady
+  ctx.fillStyle = '#ff9f43';
+  ctx.font = 'bold 13px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('⬢ Colors', panelX + padding, startY);
+  
+  for (let i = 0; i < 5; i++) {
+    const upgrade = shopSystem.colorUpgrades[i];
+    const y = startY + 22 + i * 35;
+    
+    const isBought = shopSystem.selectedColorLevel > i;
+    const isAffordable = status.angles >= shopSystem.getColorUpgradeCost(i + 1);
+    const isSelected = shopSystem.selectedColorLevel === i + 1;
+    const isLevelLocked = (i + 1) > (status.level - 1);
+    
+    if (isLevelLocked) {
+      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
+    } else if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
+    } else if (isSelected) {
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.3)';
+    } else if (isAffordable) {
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
+    } else {
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+    }
+    
+    ctx.fillRect(panelX + padding, y, colWidth, 28);
+    
+    let borderColor = '#666666';
+    if (isLevelLocked) borderColor = '#444444';
+    if (isBought) borderColor = '#00ff64';
+    if (isSelected) borderColor = '#00ffff';
+    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#0088ff';
+    
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(panelX + padding, y, colWidth, 28);
+    
+    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'left';
+    
+    const costStr = `${shopSystem.getColorUpgradeCost(i + 1)}⊻`;
+    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    ctx.fillText(`${upgrade.name} ${statusStr}`, panelX + padding + 5, y + 8);
+    ctx.fillText(costStr, panelX + padding + 5, y + 20);
+    
+    uiButtons.colorUpgrades[i] = { x: panelX + padding, y: y, w: colWidth, h: 28 };
+  }
+  
+  // Pravý sloupec - upgrady ostrosti
+  const rightX = panelX + padding + colWidth + padding;
+  ctx.fillStyle = '#ff6b9d';
+  ctx.font = 'bold 13px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('◆ Sharpness', rightX, startY);
+  
+  for (let i = 0; i < 5; i++) {
+    const upgrade = shopSystem.sharpnessUpgrades[i];
+    const y = startY + 22 + i * 35;
+    
+    const isBought = shopSystem.selectedSharpnessLevel > i;
+    const isAffordable = status.angles >= shopSystem.getSharpnessUpgradeCost(i + 1);
+    const isSelected = shopSystem.selectedSharpnessLevel === i + 1;
+    const isLevelLocked = (i + 1) > (status.level - 1);
+    
+    if (isLevelLocked) {
+      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
+    } else if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
+    } else if (isSelected) {
+      ctx.fillStyle = 'rgba(255, 100, 150, 0.3)';
+    } else if (isAffordable) {
+      ctx.fillStyle = 'rgba(255, 150, 200, 0.2)';
+    } else {
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+    }
+    
+    ctx.fillRect(rightX, y, colWidth, 28);
+    
+    let borderColor = '#666666';
+    if (isLevelLocked) borderColor = '#444444';
+    if (isBought) borderColor = '#00ff64';
+    if (isSelected) borderColor = '#ff6b9d';
+    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#ff9fbf';
+    
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(rightX, y, colWidth, 28);
+    
+    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'left';
+    
+    const costStr = `${shopSystem.getSharpnessUpgradeCost(i + 1)}⊻`;
+    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    ctx.fillText(`${upgrade.name} ${statusStr}`, rightX + 5, y + 8);
+    ctx.fillText(costStr, rightX + 5, y + 20);
+    
+    uiButtons.sharpnessUpgrades[i] = { x: rightX, y: y, w: colWidth, h: 28 };
+  }
+  
+  // Shape upgrade
+  const shapeY = startY + 185;
+  ctx.fillStyle = '#ffdd00';
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('⬟ Shape', panelX + panelWidth / 2, shapeY);
+  
+  const shapeBtnX = panelX + panelWidth / 2 - 70;
+  const shapeBtnY = shapeY + 10;
+  const shapeBtnW = 140;
+  const shapeBtnH = 26;
+  
+  const shapeUpgradeCost = levelSystem.upgradeCost;
+  const canBuyShape = levelSystem.currentLevel >= 2 && levelSystem.angles >= shapeUpgradeCost;
+  
+  ctx.fillStyle = canBuyShape ? 'rgba(255, 200, 50, 0.2)' : 'rgba(100, 100, 100, 0.1)';
+  ctx.fillRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
+  
+  ctx.strokeStyle = canBuyShape ? '#ffdd00' : '#666666';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
+  
+  ctx.fillStyle = canBuyShape ? '#ffffff' : '#888888';
+  ctx.font = '9px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${levelSystem.playerSides}-gon → ${levelSystem.playerSides + 1}-gon`, panelX + panelWidth / 2, shapeBtnY + 8);
+  ctx.fillText(`(${shapeUpgradeCost}⊻)`, panelX + panelWidth / 2, shapeBtnY + 19);
+  
+  uiButtons.shapeUpgradeButton = { x: shapeBtnX, y: shapeBtnY, w: shapeBtnW, h: shapeBtnH };
+}
+
+// DESKTOP LAYOUT (> 768px) - Původní design
+function drawShopDesktop(panelX, panelY, panelWidth, panelHeight) {
+  const status = levelSystem.getStatus();
+  
   // ===== LEVÁ STRANA - BAREVNÉ UPGRADY =====
   const leftX = panelX + 20;
   const leftY = panelY + 80;
@@ -646,135 +969,117 @@ function drawShopUI(canvasWidth, canvasHeight) {
   ctx.textAlign = 'left';
   ctx.fillText('⬢ Colors', leftX, leftY);
   
-  // Projdi všech 5 barevných upgradů
   for (let i = 0; i < 5; i++) {
     const upgrade = shopSystem.colorUpgrades[i];
-    const y = leftY + 35 + i * 40;  // Y pozice každého upgradu (40px apart)
+    const y = leftY + 35 + i * 40;
     
-    // ===== TLAČÍTKO UPGRADU =====
     const btnX = leftX;
     const btnY = y - 15;
     const btnW = 210;
     const btnH = 30;
     
-    // Zjistit stavy upgradu
-    const isBought = shopSystem.selectedColorLevel > i;           // Už koupen nižší level?
-    const isAffordable = status.angles >= shopSystem.getColorUpgradeCost(i + 1);  // Má dost úhlů?
-    const isSelected = shopSystem.selectedColorLevel === i + 1;    // Je to aktuálně vybraný?
-    const isLevelLocked = (i + 1) > (status.level - 1);            // Je zamčen kvůli levelu?
+    const isBought = shopSystem.selectedColorLevel > i;
+    const isAffordable = status.angles >= shopSystem.getColorUpgradeCost(i + 1);
+    const isSelected = shopSystem.selectedColorLevel === i + 1;
+    const isLevelLocked = (i + 1) > (status.level - 1);
     
-    // ===== BARVA TLAČÍTKA PODLE STAVU =====
     if (isLevelLocked) {
-      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';     // Tmavá šedá = zamčeno
+      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
     } else if (isBought) {
-      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';   // Zelená = koupen
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
     } else if (isSelected) {
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.3)';   // Kyanová = vybrán
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.3)';
     } else if (isAffordable) {
-      ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';  // Modrá = dostupný
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
     } else {
-      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';  // Šedá = nedostupný
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
     }
     
     ctx.fillRect(btnX, btnY, btnW, btnH);
     
-    // ===== BORDER TLAČÍTKA PODLE STAVU =====
-    let borderColor = '#666666';  // Default - šedý
-    if (isLevelLocked) borderColor = '#444444';           // Tmavší šedá = zamčeno
-    if (isBought) borderColor = '#00ff64';                // Zelená = koupen
-    if (isSelected) borderColor = '#00ffff';              // Kyanová = vybrán
-    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#0088ff';  // Modrá = dostupný
+    let borderColor = '#666666';
+    if (isLevelLocked) borderColor = '#444444';
+    if (isBought) borderColor = '#00ff64';
+    if (isSelected) borderColor = '#00ffff';
+    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#0088ff';
     
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(btnX, btnY, btnW, btnH);
     
-    // ===== TEXT NA TLAČÍTKU =====
     ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
     ctx.font = '11px Arial';
     ctx.textAlign = 'left';
     
-    // Ikona stavu: ✓ = koupen, ● = vybrán, 🔒 = zamčen
     const costStr = `${shopSystem.getColorUpgradeCost(i + 1)}⊻`;
     const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
     
-    // Název upgradu + status
     ctx.fillText(`${upgrade.name} ${statusStr}`, btnX + 5, y - 2);
-    // Popis + cena
     ctx.fillText(upgrade.description + ' | ' + costStr, btnX + 5, y + 10);
     
-    // Ulož souřadnice tlačítka (pro detekci kliknutí)
     uiButtons.colorUpgrades[i] = { x: btnX, y: btnY, w: btnW, h: btnH };
   }
   
   // ===== PRAVÁ STRANA - UPGRADY OSTROSTI =====
-  const rightX = panelX + 470;  // Odsazení na pravou stranu
+  const rightX = panelX + 470;
   
   ctx.fillStyle = '#ff6b9d';
   ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'left';
-  ctx.fillText('◆ Sharpness', rightX, leftY);  // Nadpis vedle barevných upgradů
+  ctx.fillText('◆ Sharpness', rightX, leftY);
   
-  // Projdi všech 5 upgradů ostrosti
   for (let i = 0; i < 5; i++) {
     const upgrade = shopSystem.sharpnessUpgrades[i];
-    const y = leftY + 35 + i * 40;  // Stejné Y pozice jako barvy (vedle sebe)
+    const y = leftY + 35 + i * 40;
     
-    // ===== TLAČÍTKO UPGRADU =====
     const btnX = rightX;
     const btnY = y - 15;
     const btnW = 210;
     const btnH = 30;
     
-    // Zjistit stavy upgradu (stejná logika jako barevné upgrady)
     const isBought = shopSystem.selectedSharpnessLevel > i;
     const isAffordable = status.angles >= shopSystem.getSharpnessUpgradeCost(i + 1);
     const isSelected = shopSystem.selectedSharpnessLevel === i + 1;
     const isLevelLocked = (i + 1) > (status.level - 1);
     
-    // ===== BARVA TLAČÍTKA PODLE STAVU =====
     if (isLevelLocked) {
-      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';     // Tmavá šedá = zamčeno
+      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
     } else if (isBought) {
-      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';   // Zelená = koupen
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
     } else if (isSelected) {
-      ctx.fillStyle = 'rgba(255, 100, 150, 0.3)';  // Růžová = vybrán
+      ctx.fillStyle = 'rgba(255, 100, 150, 0.3)';
     } else if (isAffordable) {
-      ctx.fillStyle = 'rgba(255, 150, 200, 0.2)';  // Světle růžová = dostupný
+      ctx.fillStyle = 'rgba(255, 150, 200, 0.2)';
     } else {
-      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';  // Šedá = nedostupný
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
     }
     
     ctx.fillRect(btnX, btnY, btnW, btnH);
     
-    // ===== BORDER TLAČÍTKA PODLE STAVU =====
-    let borderColor = '#666666';  // Default - šedý
+    let borderColor = '#666666';
     if (isLevelLocked) borderColor = '#444444';
-    if (isBought) borderColor = '#00ff64';              // Zelená = koupen
-    if (isSelected) borderColor = '#ff6b9d';            // Růžová = vybrán
-    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#ff9fbf';  // Světle růžová
+    if (isBought) borderColor = '#00ff64';
+    if (isSelected) borderColor = '#ff6b9d';
+    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#ff9fbf';
     
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(btnX, btnY, btnW, btnH);
     
-    // ===== TEXT NA TLAČÍTKU =====
     ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
     ctx.font = '11px Arial';
     ctx.textAlign = 'left';
     
-    // Cena a status
     const costStr = `${shopSystem.getSharpnessUpgradeCost(i + 1)}⊻`;
     const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
     
     ctx.fillText(`${upgrade.name} ${statusStr}`, btnX + 5, y - 2);
     ctx.fillText(upgrade.description + ' | ' + costStr, btnX + 5, y + 10);
     
-    // Ulož souřadnice tlačítka (pro detekci kliknutí)
     uiButtons.sharpnessUpgrades[i] = { x: btnX, y: btnY, w: btnW, h: btnH };
   }
   
-  // ===== UPGRADE TVARU - UPROSTŘED DOLE (PŘIDÁNÍ STRAN) =====
+  // ===== UPGRADE TVARU - UPROSTŘED DOLE =====
   const shapeY = panelY + panelHeight - 100;
   
   ctx.fillStyle = '#ffdd00';
@@ -782,7 +1087,6 @@ function drawShopUI(canvasWidth, canvasHeight) {
   ctx.textAlign = 'center';
   ctx.fillText('⬟ Shape Upgrade', panelX + panelWidth / 2, shapeY);
   
-  // Tlačítko pro upgrade tvaru
   const shapeBtnX = panelX + panelWidth / 2 - 95;
   const shapeBtnY = shapeY + 12;
   const shapeBtnW = 190;
@@ -791,28 +1095,23 @@ function drawShopUI(canvasWidth, canvasHeight) {
   const shapeUpgradeCost = levelSystem.upgradeCost;
   const canBuyShape = levelSystem.currentLevel >= 2 && levelSystem.angles >= shapeUpgradeCost;
   
-  // Barva tlačítka - žlutá pokud dostupné, šedá pokud ne
   ctx.fillStyle = canBuyShape ? 'rgba(255, 200, 50, 0.2)' : 'rgba(100, 100, 100, 0.1)';
   ctx.fillRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
   
-  // Border tlačítka
   ctx.strokeStyle = canBuyShape ? '#ffdd00' : '#666666';
   ctx.lineWidth = 1.5;
   ctx.strokeRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
   
-  // Text na tlačítku
   ctx.fillStyle = canBuyShape ? '#ffffff' : '#888888';
   ctx.font = '10px Arial';
   ctx.textAlign = 'left';
   
-  // Zobraz upgrade: 3-gon → 4-gon, apod.
   ctx.fillText(`${levelSystem.playerSides}-gon → ${levelSystem.playerSides + 1}-gon (${shapeUpgradeCost}⊻)`, shapeBtnX + 5, shapeBtnY + 9);
   ctx.fillText(`Requires Level 2+`, shapeBtnX + 5, shapeBtnY + 20);
   
-  // Ulož souřadnice tlačítka (pro detekci kliknutí)
   uiButtons.shapeUpgradeButton = { x: shapeBtnX, y: shapeBtnY, w: shapeBtnW, h: shapeBtnH };
   
-  // ===== LEVELUP TLAČÍTKO A PROGRESS - DLE DOLE =====
+  // ===== LEVELUP TLAČÍTKO A PROGRESS - DOLE =====
   const levelupBtnX = panelX + panelWidth / 2 - 105;
   const levelupBtnY = panelY + panelHeight - 48;
   const levelupBtnW = 210;
@@ -838,11 +1137,11 @@ function drawShopUI(canvasWidth, canvasHeight) {
   ctx.fillStyle = 'rgba(30, 50, 80, 0.8)';
   ctx.fillRect(barX, barY, barW, barH);
   
-  // Vyplnění baru - gradient s růžovým a fialovým
+  // Vyplnění baru
   const xpPercent = Math.min(100, (status.xp / status.requiredXP) * 100);
   const xpGradient = ctx.createLinearGradient(barX, 0, barX + barW, 0);
-  xpGradient.addColorStop(0, '#ff6b9d');       // Růžová
-  xpGradient.addColorStop(1, '#9d4edd');       // Fialová
+  xpGradient.addColorStop(0, '#ff6b9d');
+  xpGradient.addColorStop(1, '#9d4edd');
   ctx.fillStyle = xpGradient;
   ctx.fillRect(barX, barY, (barW * xpPercent) / 100, barH);
   
@@ -852,25 +1151,27 @@ function drawShopUI(canvasWidth, canvasHeight) {
   ctx.strokeRect(barX, barY, barW, barH);
   
   // ===== LEVELUP TLAČÍTKO =====
-  const needsXP = status.xp < status.requiredXP;  // Chybí ještě XP?
+  const needsXP = status.xp < status.requiredXP;
   
-  // Barva tlačítka - zelená pokud je XP dost, červená pokud ne
-  ctx.fillStyle = needsXP ? 'rgba(100, 50, 50, 0.3)' : 'rgba(100, 200, 100, 0.3)';
+  ctx.fillStyle = needsXP ? 'rgba(150, 150, 150, 0.1)' : 'rgba(0, 255, 100, 0.2)';
   ctx.fillRect(levelupBtnX, levelupBtnY, levelupBtnW, levelupBtnH);
   
-  // Border tlačítka
-  ctx.strokeStyle = needsXP ? '#ff6666' : '#00ff99';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = needsXP ? '#666666' : '#00ff64';
+  ctx.lineWidth = 2;
   ctx.strokeRect(levelupBtnX, levelupBtnY, levelupBtnW, levelupBtnH);
   
-  // Text na tlačítku - "MORE XP" nebo "LEVEL UP!"
-  ctx.fillStyle = needsXP ? '#ff6666' : '#00ff99';
-  ctx.font = 'bold 12px Arial';
+  ctx.fillStyle = needsXP ? '#888888' : '#00ff64';
+  ctx.font = 'bold 14px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(needsXP ? 'MORE XP' : 'LEVEL UP!', panelX + panelWidth / 2, levelupBtnY + 22);
+  ctx.fillText(needsXP ? 'MORE XP NEEDED' : '✦ LEVEL UP ✦', panelX + panelWidth / 2, levelupBtnY + levelupBtnH / 2 + 5);
   
-  // Ulož souřadnice levelup tlačítka (pro detekci kliknutí)
   uiButtons.levelUpButton = { x: levelupBtnX, y: levelupBtnY, w: levelupBtnW, h: levelupBtnH };
 }
+
+// ===================================================================
+// KONEC SHOP SYSTÉMU
+// ===================================================================
+
+
 
 
