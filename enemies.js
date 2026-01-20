@@ -15,6 +15,7 @@ import { drawPolygon, ctx } from "./render.js";      // Kreslení polygonů
 import { obstacles } from "./obstacles.js";          // Překážky (pro AI)
 import { spawnEnemyExplosion } from "./enemyEffects.js";  // Efekty smrti
 import { levelSystem } from "./leveling.js";         // XP systém
+import { playEnemyHitSound } from "./audio.js";      // Zvuk při zásahu nepřítele
 
 // Celkový skóre (počet stran všech zabítých nepřátel)
 export let score = 0;
@@ -292,19 +293,45 @@ export function generateEnemies(w, h, floorHeight) {
 
 // Aktualizuj pohyb všech nepřátel
 // isColliding: je hráč právě v kolizi s překážkou?
-// Když je v kolizi, nepřátelé se zpomalují
+// Když je v kolizi, nepřátelé se zpomalují ALE STÁLE MOHOU LÉZ
 export function moveEnemies(isColliding, canvasWidth, canvasHeight, floorHeight) {
   // Projdi všechny nepřátele
   enemyManager.entities.forEach(enemy => {
     if (!enemy.alive) return;  // Přeskoč mrtvé nepřátele
 
     // ===== CHOVÁNÍ BĚHEM KOLIZE HRÁČE =====
-    // Když hráč narazí na překážku, nepřátelé se zpomalují
+    // Když hráč narazí na překážku, nepřátelé se zpomalují ALE ty co lezou pokračují normálně
     if (isColliding) {
-      // Pomalá rychlost doprava (opačný směr, 15% normální)
-      const slowSpeed = -ENEMY_SPEED_X * 0.15;
-      enemy.vx = slowSpeed;
-      enemy.vy = 0;
+      // Pokud NEJSOU v "climbing" stavu, zpomal je
+      if (enemy.state !== "climbing") {
+        const slowSpeed = -ENEMY_SPEED_X * 0.15;
+        enemy.vx = slowSpeed;
+        enemy.vy = 0;
+      } else {
+        // Pokud JSOU v "climbing" stavu, lezou normálně jako by nebyla kolize
+        enemy.vx = 0;  // Nepohybuj se horizontálně
+        
+        const obs = obstacles[enemy.targetObsIndex];
+        
+        if (!obs) {
+          enemy.state = "moving";
+        } else {
+          const targetY = computeGapTargetY(enemy, obs, canvasHeight, floorHeight);
+
+          if (targetY == null) {
+            enemy.vy = 0;
+          } else {
+            const dy = targetY - enemy.y;
+            
+            if (Math.abs(dy) < 0.8) {
+              enemy.y = targetY;
+              enemy.vy = 0;
+            } else {
+              enemy.vy = Math.sign(dy) * CLIMB_SPEED;
+            }
+          }
+        }
+      }
     } else {
       // ===== NORMÁLNÍ CHOVÁNÍ - STATE MACHINE =====
       
@@ -364,32 +391,31 @@ export function moveEnemies(isColliding, canvasWidth, canvasHeight, floorHeight)
     // ===== ŘEŠENÍ KOLIZÍ S PŘEKÁŽKAMI =====
     resolveCollisions(enemy, canvasHeight, floorHeight);
 
-    // ===== AI STATE TRANSITIONS (KDYž NEJSOU V KOLIZI HRÁČE) =====
-    if (!isColliding) {
-      if (enemy.state === "moving") {
-        // Pokud je v "moving" stavu, zjistí jestli vidí překážku
-        const sideIdx = findSideObstacle(enemy, canvasHeight, floorHeight);
-        
-        if (sideIdx !== -1) {
-          // Našel překážku - začni lézt!
-          enemy.state = "climbing";
-          enemy.targetObsIndex = sideIdx;
-        }
-      } else if (enemy.state === "climbing") {
-        // V "climbing" stavu - kontrola kdy přestat lézt
-        const obs = obstacles[enemy.targetObsIndex];
-        
-        if (!obs) {
-          // Překážka již neexistuje - zpátky k normálnímu pohybu
+    // ===== AI STATE TRANSITIONS (VŽDY, VČETNĚ BĚHEM KOLIZE) =====
+    // Nepřítel může změnit stav KDYKOLIV - i během kolize hráče
+    if (enemy.state === "moving") {
+      // Pokud je v "moving" stavu, zjistí jestli vidí překážku
+      const sideIdx = findSideObstacle(enemy, canvasHeight, floorHeight);
+      
+      if (sideIdx !== -1) {
+        // Našel překážku - začni lézt!
+        enemy.state = "climbing";
+        enemy.targetObsIndex = sideIdx;
+      }
+    } else if (enemy.state === "climbing") {
+      // V "climbing" stavu - kontrola kdy přestat lézt
+      const obs = obstacles[enemy.targetObsIndex];
+      
+      if (!obs) {
+        // Překážka již neexistuje - zpátky k normálnímu pohybu
+        enemy.state = "moving";
+        enemy.targetObsIndex = -1;
+      } else {
+        // Zkontroluj jestli stále koliduje s překážkou
+        if (!isCollidingWithObstacle(enemy, obs, canvasHeight, floorHeight)) {
+          // Překážka již není na cestě - vrátit se k pohybu
           enemy.state = "moving";
           enemy.targetObsIndex = -1;
-        } else {
-          // Zkontroluj jestli stále koliduje s překážkou
-          if (!isCollidingWithObstacle(enemy, obs, canvasHeight, floorHeight)) {
-            // Překážka již není na cestě - vrátit se k pohybu
-            enemy.state = "moving";
-            enemy.targetObsIndex = -1;
-          }
         }
       }
     }
@@ -453,6 +479,9 @@ export function checkEnemyCollision(player) {
       
       // Vytvoř efekt - výbuch částic
       spawnEnemyExplosion(enemy);
+      
+      // Přehrát zvuk zásahu
+      playEnemyHitSound();
       
       // Nepřítel je mrtvý
       enemy.alive = false;

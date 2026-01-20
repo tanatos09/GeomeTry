@@ -94,7 +94,8 @@ export const angleManager = {
   // Aktualizuj pozice a fyziku všech úhlů
   // isColliding: je hráč právě v kolizi s překážkou?
   // canvasHeight: výška canvasu (pro detekci mimo screen)
-  update(isColliding, canvasHeight) {
+  // floorHeight: výška podlahy (pro detekci bounce)
+  update(isColliding, canvasHeight, floorHeight) {
     this.angles.forEach(angle => {
       if (!angle.alive) return;  // Přeskoč mrtvé úhly
       
@@ -127,6 +128,27 @@ export const angleManager = {
         if (Math.abs(angle.vy) > 2.5) {
           angle.vy *= 0.92;  // Zpomal o 8%
         }
+      }
+      
+      // ===== BOUNCE - DETEKCE PODLAHY A STROPU =====
+      // Kontrola kolize s podlahou
+      const floorY = canvasHeight - floorHeight;
+      if (angle.y + this.angleSize > floorY) {
+        // Úhel narazil na podlahu - odskoč
+        angle.y = floorY - this.angleSize;  // Nastav pozici na hranici
+        angle.vy *= -0.8;  // Odskoč (s tlumením)
+      }
+      
+      // Kontrola kolize se stropem
+      if (angle.y - this.angleSize < 0) {
+        // Úhel narazil na strop - odskoč
+        angle.y = this.angleSize;  // Nastav pozici na hranici
+        angle.vy *= -0.8;  // Odskoč (s tlumením)
+      }
+      
+      // Limit vertikální rychlosti aby se úhel nepohyboval příliš divě
+      if (Math.abs(angle.vy) > 3) {
+        angle.vy = Math.sign(angle.vy) * 3;
       }
       
       // ===== DETEKCE KOLIZÍ S PŘEKÁŽKAMI =====

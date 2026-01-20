@@ -120,15 +120,19 @@ export const shopSystem = {
   // 0 = základní (bez upgradu), 1-5 = jednotlivé úrovně
   selectedSharpnessLevel: 0,
   
+  // Dva oddělené multiplikátory - trvalé upgrady na hráč
+  // Lze koupit obě nezávisle na sobě (každý stojí 150 úhlů)
+  hasAngleMultiplier: false,   // Multiplikátor na sbírané úhly a peníze
+  hasXPMultiplier: false,      // Multiplikátor na zkušenosti (XP)
+  
   // ===================================================================
   // METODY ZÍSKÁNÍ AKTUÁLNÍCH HODNOT
   // ===================================================================
-  
   // Vrátí aktuální barvu hráče podle zvoleného upgradu
   getPlayerColor() {
     // Pokud není koupen upgrade (level 0), vrátí základní azurovou
     if (this.selectedColorLevel === 0) {
-      return '#ffee00';  // Kyanová (základní)
+      return '#ffee00';  // žlutá (základní)
     }
     
     // Jinak vrátí barvu vybraného upgradu
@@ -158,6 +162,33 @@ export const shopSystem = {
     // Jinak vrátí xpBonus z vybraného upgradu
     // Např. selectedSharpnessLevel=3 → sharpnessUpgrades[2].xpBonus = 5
     return this.sharpnessUpgrades[this.selectedSharpnessLevel - 1].xpBonus;
+  },
+  
+  // Vrátí multiplikátor úhlů a XP na základě počtu hran (sides)
+  // Multiplikátor na úhly (peníze) - závislý na počtu stran hráče
+  // Pokud je koupen, vrací (sides - 2) / 5
+  // Např. triangle (3 sides) = 1.2x, square (4 sides) = 1.4x, pentagon (5 sides) = 1.6x atd.
+  getAngleMultiplier(sides) {
+    if (!this.hasAngleMultiplier) {
+      return 1;  // Bez upgradu = 1x (žádný multiplikátor)
+    }
+    
+    // Vzorec: (sides - 2) / 5 = bonus
+    const multiplier = (sides - 2) / 5;
+    return 1 + multiplier;  // Vrátí 1.2x, 1.4x, 1.6x atd.
+  },
+  
+  // Multiplikátor na XP - závislý na počtu stran hráče
+  // Pokud je koupen, vrací (sides - 2) / 5
+  // Stejný vzorec jako angle multiplier ale funguje nezávisle
+  getXPMultiplier(sides) {
+    if (!this.hasXPMultiplier) {
+      return 1;  // Bez upgradu = 1x (žádný multiplikátor)
+    }
+    
+    // Vzorec: (sides - 2) / 5 = bonus
+    const multiplier = (sides - 2) / 5;
+    return 1 + multiplier;  // Vrátí 1.2x, 1.4x, 1.6x atd.
   },
   
   // ===================================================================
@@ -220,7 +251,7 @@ export const shopSystem = {
     
     return totalCost;  // Vrátí celková cena
   },
-  
+
   // ===================================================================
   // RESET UPGRADU
   // ===================================================================
@@ -230,8 +261,28 @@ export const shopSystem = {
   resetUpgrades() {
     // Vrátí obě úrovně na 0 (bez upgradu)
     // Hráč si bude muset koupit upgrady znovu v novém levelu
-    // POZNÁMKA: V praxi se asi neměly resetovat - zkontroluj game design!
+    // POZNÁMKA: Oba multiplikátory (angle a XP) se NERESETNUJÍ - jsou trvalé!
     this.selectedColorLevel = 0;
     this.selectedSharpnessLevel = 0;
-  }
+  },
+  
+  // ===================================================================
+  // ANGLE MULTIPLIER UPGRADE
+  // ===================================================================
+  
+  // Koupi angle multiplier upgrade (multiplikátor na peníze/úhly)
+  // Cena: 150 úhlů, koupi se jednou a zůstane trvalé
+  getAngleMultiplierCost() {
+    return 150;  // Cena za angle multiplier
+  },
+  
+  // ===================================================================
+  // XP MULTIPLIER UPGRADE
+  // ===================================================================
+  
+  // Koupi XP multiplier upgrade (multiplikátor na zkušenosti)
+  // Cena: 150 úhlů, koupi se jednou a zůstane trvalé
+  getXPMultiplierCost() {
+    return 150;  // Cena za XP multiplier
+  },
 };

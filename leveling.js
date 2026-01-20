@@ -13,6 +13,7 @@
 
 import { geome } from './player.js';           // Objekt hráče (sides atd.)
 import { shopSystem } from './shop.js';         // Upgrady a jejich bonusy
+import { playLevelUpSound } from './audio.js'; // Zvuk pro levelup
 
 export const levelSystem = {
   // ===================================================================
@@ -57,9 +58,9 @@ export const levelSystem = {
   
   // Multiplikátor exponenciálního vzorce
   // Každý level bude potřebovat 3x více XP než předchozí
-  // Level 1: 30 XP
-  // Level 2: 30 * 3 = 90 XP
-  // Level 3: 30 * 3² = 270 XP
+  // Level 1: 300 XP
+  // Level 2: 300 * 3 = 900 XP
+  // Level 3: 300 * 3² = 2700 XP
   xpMultiplier: 3,
   
   // XP za jednu stranu nepřítele
@@ -68,7 +69,7 @@ export const levelSystem = {
   
   // Úhly za jednoho zabítého nepřítele
   // Plus bonusy z shopních upgradů
-  anglePerKill: 2,
+  anglePerKill: 1,
   
   // Počáteční cena za upgrade (přidání strany)
   // Později se bude zvyšovat s každým nákupem
@@ -88,10 +89,10 @@ export const levelSystem = {
   // Vypočítá kolik XP je potřeba na daný level
   // Formule: baseXP * (multiplikátor ^ (level - 1))
   // Příklady:
-  //   Level 1: 30 * 3^0 = 30
-  //   Level 2: 30 * 3^1 = 90
-  //   Level 3: 30 * 3^2 = 270
-  //   Level 4: 30 * 3^3 = 810
+  //   Level 1: 300 * 3^0 = 300
+  //   Level 2: 300 * 3^1 = 900
+  //   Level 3: 300 * 3^2 = 2700
+  //   Level 4: 300 * 3^3 = 8100
   getXPRequired(level) {
     return Math.floor(this.baseXPForLevel * Math.pow(this.xpMultiplier, level - 1));
   },
@@ -112,6 +113,14 @@ export const levelSystem = {
     // Např. Sharpness level 1 přidá +1, level 2 přidá +2 atd.
     xpGain += shopSystem.getXPBonusMultiplier();
     
+    // Přidej XP multiplikátor na základě počtu stran hráče
+    // Pokud je koupen, zvýší XP podle počtu hran
+    const xpMultiplier = shopSystem.getXPMultiplier(this.playerSides);
+    xpGain *= xpMultiplier;
+    
+    // Zaokrouhli XP na celé číslo
+    xpGain = Math.floor(xpGain);
+    
     // Aktualizuj XP počítadla
     this.currentXP += xpGain;
     this.totalXP += xpGain;
@@ -119,8 +128,16 @@ export const levelSystem = {
     // ===== VÝPOČET ÚHLŮ =====
     // Základní: anglePerKill (obychejně 2)
     // Plus bonus z barevného upgradu (Color level)
-    const angleBonus = shopSystem.getAngleBonusMultiplier();
-    this.angles += this.anglePerKill + angleBonus;
+    let angleGain = this.anglePerKill + shopSystem.getAngleBonusMultiplier();
+    
+    // Přidej angle multiplikátor na základě počtu stran hráče
+    const angleMultiplier = shopSystem.getAngleMultiplier(this.playerSides);
+    angleGain *= angleMultiplier;
+    
+    // Zaokrouhli úhly na celé číslo
+    angleGain = Math.floor(angleGain);
+    
+    this.angles += angleGain;
     
     // Inkrementuj počítadlo zabítých nepřátel
     this.enemiesKilled++;
@@ -135,8 +152,16 @@ export const levelSystem = {
   // count: počet sbíraných úhlů
   addAnglesFromCollect(count) {
     // Základní příjem + bonus z barevného upgradu
-    const bonusPerAngle = 1 + shopSystem.getAngleBonusMultiplier();
-    this.angles += count * bonusPerAngle;
+    let angleGain = count * (1 + shopSystem.getAngleBonusMultiplier());
+    
+    // Přidej angle multiplikátor na základě počtu stran hráče
+    const angleMultiplier = shopSystem.getAngleMultiplier(this.playerSides);
+    angleGain *= angleMultiplier;
+    
+    // Zaokrouhli úhly na celé číslo
+    angleGain = Math.floor(angleGain);
+    
+    this.angles += angleGain;
   },
   
   // ===================================================================
@@ -164,6 +189,9 @@ export const levelSystem = {
     
     // Zvýšíme level o 1
     this.currentLevel++;
+    
+    // Přehrát zvuk levelupu
+    playLevelUpSound();
     
     // Spusť auru efekt (bude se zobrazovat po dobu 60 framů)
     this.levelUpAuraTime = this.levelUpAuraDuration;
@@ -205,10 +233,18 @@ export const levelSystem = {
   // ===================================================================
   
   // Koupí upgrade tvaru - přidá jednu stranu k hráči
-  // Vyžaduje: Level 2+, dost úhlů
+  // Vyžaduje: Level 2+, dost úhlů, a nejsi na maximu pro tento level
   buyUpgrade() {
-    // Kontrola: musí být level 2+ (level 1 nemůže koupit) AND dost úhlů
-    if (this.currentLevel >= 2 && this.angles >= this.upgradeCost) {
+    // Kontrola: musí být level 2+ (level 1 nemůže koupit) AND dost úhlů AND není na maximu
+    // Maximální počet stran na levelu N = N + 2
+    // Level 2: max 4 strany (čtverec)
+    // Level 3: max 5 stran (pětiúhelník)
+    // Level 4: max 6 stran (šestiúhelník) atd.
+    const maxSidesForLevel = this.currentLevel + 2;
+    
+    console.log(`buyUpgrade check: level=${this.currentLevel}, angles=${this.angles}, cost=${this.upgradeCost}, sides=${this.playerSides}, max=${maxSidesForLevel}`);
+    
+    if (this.currentLevel >= 2 && this.angles >= this.upgradeCost && this.playerSides < maxSidesForLevel) {
       // Odeber cenu z inventáře
       this.angles -= this.upgradeCost;
       
@@ -222,9 +258,21 @@ export const levelSystem = {
       // Aby se staly upgrady postupně dražšími
       this.upgradeCost += 25;
       
+      // Resetuj barvu a ostrost upgrady - musíš si je koupit znovu s novou postavou
+      shopSystem.resetUpgrades();
+      
+      console.log(`Upgrade successful! New sides=${this.playerSides}, next cost=${this.upgradeCost}`);
       return true;  // Úspěšný nákup
     }
     
+    // Debug - ukaž proč nákup selhal
+    if (this.currentLevel < 2) {
+      console.log(`Upgrade failed: potřebuješ level 2+, máš level ${this.currentLevel}`);
+    } else if (this.angles < this.upgradeCost) {
+      console.log(`Upgrade failed: potřebuješ ${this.upgradeCost} úhlů, máš ${this.angles}`);
+    } else if (this.playerSides >= maxSidesForLevel) {
+      console.log(`Upgrade failed: už máš maximum ${maxSidesForLevel} stran pro level ${this.currentLevel}`);
+    }
     return false;  // Nemá dostatečné podmínky
   },
   

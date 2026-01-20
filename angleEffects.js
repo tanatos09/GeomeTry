@@ -25,6 +25,7 @@
 // IMPORTY
 import { ctx } from "./render.js";  // Canvas context pro kreslení (save, restore, globalAlpha)
 import { config } from "./config.js";  // Nastavení (gravity = 0.6)
+import { playAngleCollectSound } from "./audio.js";  // Zvuk sbírání úhlu
 
 // ===================================================================
 // STAV - Správa Všech Aktivních Částic Efektů
@@ -136,6 +137,9 @@ export function spawnAngleBreak(angle) {
 export function spawnAngleCollect(angle, playerX, playerY) {
   // Počet částic pro sbírání (méně než rozpady, ale více elegantní)
   const count = 3;
+  
+  // Přehrát zvuk sbírání úhlu
+  playAngleCollectSound();
   
   // Vytvoř každou sbírací částici
   for (let i = 0; i < count; i++) {

@@ -17,6 +17,7 @@ import { obstacles } from './obstacles.js';     // Pole překážek
 import { config } from './config.js';           // Globální konfigurace
 import { levelSystem } from './leveling.js';    // Systém XP, levelů a ugradů
 import { shopSystem } from './shop.js';         // Definice upgradů a jejich stav
+import { playShopOpenSound, playShopBuySound, playErrorSound } from './audio.js'; // Zvuky shopu
 
 // Získání canvas elementu z HTML a inicializace 2D kontextu
 // Canvas je hlavní plocha kde kreslíme vše (pozadí, hráč, překážky, UI)
@@ -42,6 +43,10 @@ export const getUIScale = (canvasWidth) => {
 // shopOpen: boolean - Jestli je shop panel viditelný (true = otevřen)
 export let shopOpen = false;
 
+// shopScrollOffset: číslo - Vertikální offset pro scrollování v shopu
+// Zvětšuje se při scrollu dolů (více obsahu viditelného dole)
+export let shopScrollOffset = 0;
+
 // uiButtons: objekt uchovávající souřadnice všech interaktivních prvků
 // Souřadnice jsou nastavovány během kreslení a používají se pro detekci kliknutí
 export const uiButtons = {
@@ -50,7 +55,8 @@ export const uiButtons = {
   colorUpgrades: [null, null, null, null, null], // Pole 5 tlačítek pro barevné upgrady
   sharpnessUpgrades: [null, null, null, null, null], // Pole 5 tlačítek pro upgrady ostrosti
   shapeUpgradeButton: null,                      // Tlačítko pro přidání stran polygonu
-  levelUpButton: null                            // Tlačítko pro levelup
+  angleMultiplierButton: null,                   // Tlačítko pro angle multiplier
+  xpMultiplierButton: null                       // Tlačítko pro XP multiplier
 };
 
 // ===================================================================
@@ -72,6 +78,7 @@ export function handleUIClick(x, y) {
     // Kliknul-li hráč na X v pravém horním rohu, zavři shop
     if (uiButtons.closeButton && isClickInRect(x, y, uiButtons.closeButton)) {
       shopOpen = false;  // Zavři shop
+      shopScrollOffset = 0;  // Reset scroll offset
       return;            // Výstup - nekontroluj další tlačítka
     }
     
@@ -95,23 +102,64 @@ export function handleUIClick(x, y) {
     
     // ----- UPGRADE TVARU (PŘIDÁNÍ STRAN) -----
     // Koupí další stranu polygonu (3-gon → 4-gon → 5-gon atd.)
+    // Vyžaduje: Level 2+, dost úhlů, není na maximu pro tento level
     if (uiButtons.shapeUpgradeButton && isClickInRect(x, y, uiButtons.shapeUpgradeButton)) {
       const result = levelSystem.buyUpgrade();  // Pokus koupit upgrade
       if (result) {
+        playShopBuySound();  // Přehrát zvuk nákupu
         console.log(`Upgrade completed! New shape: ${levelSystem.playerSides}-gon`);
+      } else {
+        // Nákup se nezdařil - zjisti proč
+        const maxSidesForLevel = levelSystem.currentLevel + 2;
+        
+        if (levelSystem.currentLevel < 2) {
+          console.log('Upgrade tvaru je dostupný až od levelu 2!');
+        } else if (levelSystem.angles < levelSystem.upgradeCost) {
+          console.log(`Potřebuješ ${levelSystem.upgradeCost - levelSystem.angles} více úhlů!`);
+        } else if (levelSystem.playerSides >= maxSidesForLevel) {
+          console.log(`Na levelu ${levelSystem.currentLevel} můžeš mít max ${maxSidesForLevel} stran! Postup na další level pro více upgradů.`);
+        }
+        playErrorSound();  // Přehrát zvuk chyby
       }
       return;
     }
     
-    // ----- TLAČÍTKO LEVELUP -----
-    // Když hráč má dost XP, umožní levelup
-    if (uiButtons.levelUpButton && isClickInRect(x, y, uiButtons.levelUpButton)) {
-      // Kontrola: má hráč dost XP na level up?
-      const needsXP = levelSystem.currentXP < levelSystem.getXPRequired(levelSystem.currentLevel);
-      if (!needsXP) {
-        levelSystem.levelUp();  // Provede levelup (zvýší level, resetuje XP)
-        shopOpen = false;       // Zavři shop po levelupu
-        console.log(`Level up! New level: ${levelSystem.currentLevel}`);
+    // ----- ANGLE MULTIPLIER UPGRADE -----
+    // Koupí multiplikátor na sbírané úhly/peníze
+    // Vyžaduje: 150 úhlů, lze koupit jen jednou (trvalý upgrade)
+    if (uiButtons.angleMultiplierButton && isClickInRect(x, y, uiButtons.angleMultiplierButton)) {
+      if (shopSystem.hasAngleMultiplier) {
+        console.log('Angle multiplier již máš! Efekt zůstává trvalý.');
+        playErrorSound();
+      } else if (levelSystem.angles >= 150) {
+        levelSystem.angles -= 150;  // Odečti cenu
+        shopSystem.hasAngleMultiplier = true;  // Nastav flag
+        playShopBuySound();
+        console.log(`Angle multiplier koupeno! Aktuální multiplikátor: ${shopSystem.getAngleMultiplier(levelSystem.playerSides).toFixed(2)}x`);
+      } else {
+        const angleMissing = 150 - levelSystem.angles;
+        console.log(`Potřebuješ ${angleMissing} více úhlů na angle multiplier!`);
+        playErrorSound();
+      }
+      return;
+    }
+    
+    // ----- XP MULTIPLIER UPGRADE -----
+    // Koupí multiplikátor na zkušenosti (XP)
+    // Vyžaduje: 150 úhlů, lze koupit jen jednou (trvalý upgrade)
+    if (uiButtons.xpMultiplierButton && isClickInRect(x, y, uiButtons.xpMultiplierButton)) {
+      if (shopSystem.hasXPMultiplier) {
+        console.log('XP multiplier již máš! Efekt zůstává trvalý.');
+        playErrorSound();
+      } else if (levelSystem.angles >= 150) {
+        levelSystem.angles -= 150;  // Odečti cenu
+        shopSystem.hasXPMultiplier = true;  // Nastav flag
+        playShopBuySound();
+        console.log(`XP multiplier koupeno! Aktuální multiplikátor: ${shopSystem.getXPMultiplier(levelSystem.playerSides).toFixed(2)}x`);
+      } else {
+        const angleMissing = 150 - levelSystem.angles;
+        console.log(`Potřebuješ ${angleMissing} více úhlů na XP multiplier!`);
+        playErrorSound();
       }
       return;
     }
@@ -124,6 +172,7 @@ export function handleUIClick(x, y) {
   // Kontroluj jen tlačítko pro otevření shopu
   if (uiButtons.shopButton && isClickInRect(x, y, uiButtons.shopButton)) {
     shopOpen = true;  // Otevři shop
+    playShopOpenSound();  // Přehrát zvuk otevření shopu
   }
 }
 
@@ -145,6 +194,7 @@ function buyColorUpgrade(level) {
   // Kontrola: jestli už hráč má koupenou vyšší nebo stejnou úroveň
   if (shopSystem.selectedColorLevel >= level) {
     console.log('Už máš tuto barvu koupenou!');  // Nemohu koupit nižší level
+    playErrorSound();  // Přehrát zvuk chyby
     return;
   }
   
@@ -155,9 +205,11 @@ function buyColorUpgrade(level) {
   if (levelSystem.angles >= cost) {
     shopSystem.selectedColorLevel = level;  // Nastav nový upgrade
     levelSystem.angles -= cost;             // Odeber cenu z inventáře
+    playShopBuySound();  // Přehrát zvuk nákupu
     console.log(`Bought Color: ${shopSystem.colorUpgrades[level - 1].name}`);
   } else {
     // Chybí mu úhly - řekni kolik je potřeba
+    playErrorSound();  // Přehrát zvuk chyby
     console.log(`Potřebuješ ${cost - levelSystem.angles} více úhlů!`);
   }
 }
@@ -168,6 +220,7 @@ function buySharpnessUpgrade(level) {
   // Kontrola: jestli už hráč má koupenou vyšší nebo stejnou úroveň
   if (shopSystem.selectedSharpnessLevel >= level) {
     console.log('Už máš tuto ostrost koupenou!');  // Nemohu koupit nižší level
+    playErrorSound();  // Přehrát zvuk chyby
     return;
   }
   
@@ -178,9 +231,11 @@ function buySharpnessUpgrade(level) {
   if (levelSystem.angles >= cost) {
     shopSystem.selectedSharpnessLevel = level;  // Nastav nový upgrade
     levelSystem.angles -= cost;                 // Odeber cenu z inventáře
+    playShopBuySound();  // Přehrát zvuk nákupu
     console.log(`Bought Sharpness: ${shopSystem.sharpnessUpgrades[level - 1].name}`);
   } else {
     // Chybí mu úhly - řekni kolik je potřeba
+    playErrorSound();  // Přehrát zvuk chyby
     console.log(`Potřebuješ ${cost - levelSystem.angles} více úhlů!`);
   }
 }
@@ -246,17 +301,18 @@ export function drawAngleIcon(x, y, size, rotation = 0) {
   ctx.translate(x, y);
   ctx.rotate(rotation);
   
-  // ===== HLAVNÍ TVAR: ORANŽOVÉ "<" ČÁRY =====
+  // ===== HLAVNÍ TVAR: ORANŽOVÉ "V" ČÁRY (45°) =====
   ctx.strokeStyle = '#ff9f43';  // Kosmická oranžová
   ctx.lineWidth = 2.5;          // Tloušťka čáry
   ctx.lineCap = 'round';        // Kulaté konce čar
   ctx.lineJoin = 'round';       // Kulaté spoje čar
   
-  // Nakreslení "V" tvaru - dvě čáry které tvoří "<"
+  // Nakreslení "V" tvaru (45° úhel) - dvě čáry které tvoří "∨"
+  // Tvar je otočen o -45° aby vypadal jako V místo jak <
   ctx.beginPath();
-  ctx.moveTo(size, -size);      // Levý horní bod
-  ctx.lineTo(0, 0);             // Středový bod
-  ctx.lineTo(size, size);       // Levý dolní bod
+  ctx.moveTo(-size, -size);     // Levý horní bod
+  ctx.lineTo(0, size);          // Prostřední dolní bod
+  ctx.lineTo(size, -size);      // Pravý horní bod
   ctx.stroke();                 // Nakresli tyto čáry
   
   // ===== VNĚJŠÍ GLOW EFEKTY =====
@@ -498,7 +554,7 @@ function drawUI(canvasWidth, canvasHeight) {
 // sides: počet stran polygonu
 // rotation: rotace polygonu
 // color: základní barva hráče (default kyanová)
-function drawPlayerWithGlow(x, y, radius, sides, rotation, color = '#eeff00') {
+function drawPlayerWithGlow(x, y, radius, sides, rotation, color = '#00f0ff') {
   // Zjisti intenzitu aury (0-1, 0 = není vidět, 1 = plná intenzita)
   const alpha = levelSystem.getLevelUpAuraAlpha();
   
@@ -689,130 +745,253 @@ function drawShopMobileVertical(panelX, panelY, panelWidth, panelHeight) {
   
   for (let i = 0; i < 5; i++) {
     const upgrade = shopSystem.colorUpgrades[i];
-    const y = startY + 20 + i * 30;
+    const y = startY + 20 + i * 38 - shopScrollOffset;
+    
+    // Přeskoč prvky které nejsou viditelné (mimo panel)
+    if (y + colorBtnHeight < panelY || y > panelY + panelHeight) continue;
     
     const isBought = shopSystem.selectedColorLevel > i;
     const isAffordable = status.angles >= shopSystem.getColorUpgradeCost(i + 1);
-    const isSelected = shopSystem.selectedColorLevel === i + 1;
-    const isLevelLocked = (i + 1) > (status.level - 1);
     
-    // Barva pozadí
-    if (isLevelLocked) {
-      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
-    } else if (isBought) {
-      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
-    } else if (isSelected) {
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.3)';
+    // Barva podle stavu: Koupeno (zelené) / Lze koupit (červené) / Nemůžu koupit (šedé)
+    if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';  // ZELENÁ - koupeno
     } else if (isAffordable) {
-      ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';  // ČERVENÁ - lze koupit
     } else {
-      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';  // ŠEDÁ - nemůžu koupit
     }
     
     ctx.fillRect(panelX + padding, y, colorBtnWidth, colorBtnHeight);
     
-    // Border
+    // Border barva
     let borderColor = '#666666';
-    if (isLevelLocked) borderColor = '#444444';
-    if (isBought) borderColor = '#00ff64';
-    if (isSelected) borderColor = '#00ffff';
-    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#0088ff';
+    if (isBought) borderColor = '#00ff64';  // Zelená - koupeno
+    if (isAffordable && !isBought) borderColor = '#ff6464';  // Červená - lze koupit
     
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1;
     ctx.strokeRect(panelX + padding, y, colorBtnWidth, colorBtnHeight);
     
-    // Text
-    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    // Text barva
+    ctx.fillStyle = isBought || isAffordable ? '#ffffff' : '#888888';
     ctx.font = '9px Arial';
     ctx.textAlign = 'left';
     
     const costStr = `${shopSystem.getColorUpgradeCost(i + 1)}⊻`;
-    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    const statusStr = isBought ? '✓' : (!isAffordable ? '🔒' : '');
     ctx.fillText(`${upgrade.name.substring(0, 10)} ${statusStr} ${costStr}`, panelX + padding + 3, y + 15);
     
     uiButtons.colorUpgrades[i] = { x: panelX + padding, y: y, w: colorBtnWidth, h: colorBtnHeight };
   }
   
   // Upgrady ostrosti
-  const sharpnessStartY = startY + 175;
+  const sharpnessStartY = startY + 210;
   ctx.fillStyle = '#ff6b9d';
   ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'left';
-  ctx.fillText('◆ Sharpness', panelX + padding, sharpnessStartY);
+  ctx.fillText('◆ Sharpness', panelX + padding, sharpnessStartY - shopScrollOffset);
   
   for (let i = 0; i < 5; i++) {
     const upgrade = shopSystem.sharpnessUpgrades[i];
-    const y = sharpnessStartY + 20 + i * 30;
+    const y = sharpnessStartY + 20 + i * 38 - shopScrollOffset;
+    
+    // Přeskoč prvky které nejsou viditelné (mimo panel)
+    if (y + 24 < panelY || y > panelY + panelHeight) continue;
     
     const isBought = shopSystem.selectedSharpnessLevel > i;
     const isAffordable = status.angles >= shopSystem.getSharpnessUpgradeCost(i + 1);
-    const isSelected = shopSystem.selectedSharpnessLevel === i + 1;
-    const isLevelLocked = (i + 1) > (status.level - 1);
     
-    if (isLevelLocked) {
-      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
-    } else if (isBought) {
-      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
-    } else if (isSelected) {
-      ctx.fillStyle = 'rgba(255, 100, 150, 0.3)';
+    // Barva podle stavu: Koupeno (zelené) / Lze koupit (červené) / Nemůžu koupit (šedé)
+    if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';  // ZELENÁ - koupeno
     } else if (isAffordable) {
-      ctx.fillStyle = 'rgba(255, 150, 200, 0.2)';
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';  // ČERVENÁ - lze koupit
     } else {
-      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';  // ŠEDÁ - nemůžu koupit
     }
     
     ctx.fillRect(panelX + padding, y, colorBtnWidth, colorBtnHeight);
     
+    // Border barva
     let borderColor = '#666666';
-    if (isLevelLocked) borderColor = '#444444';
-    if (isBought) borderColor = '#00ff64';
-    if (isSelected) borderColor = '#ff6b9d';
-    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#ff9fbf';
+    if (isBought) borderColor = '#00ff64';  // Zelená - koupeno
+    if (isAffordable && !isBought) borderColor = '#ff6464';  // Červená - lze koupit
     
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1;
     ctx.strokeRect(panelX + padding, y, colorBtnWidth, colorBtnHeight);
     
-    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    // Text barva
+    ctx.fillStyle = isBought || isAffordable ? '#ffffff' : '#888888';
     ctx.font = '9px Arial';
     ctx.textAlign = 'left';
     
     const costStr = `${shopSystem.getSharpnessUpgradeCost(i + 1)}⊻`;
-    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    const statusStr = isBought ? '✓' : (!isAffordable ? '🔒' : '');
     ctx.fillText(`${upgrade.name.substring(0, 10)} ${statusStr} ${costStr}`, panelX + padding + 3, y + 15);
     
     uiButtons.sharpnessUpgrades[i] = { x: panelX + padding, y: y, w: colorBtnWidth, h: colorBtnHeight };
   }
   
   // Shape upgrade - kompaktnější
-  const shapeY = sharpnessStartY + 175;
+  const shapeY = sharpnessStartY + 210;
   ctx.fillStyle = '#ffdd00';
   ctx.font = 'bold 10px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('⬟ Shape', panelX + panelWidth / 2, shapeY);
+  ctx.fillText('⬟ Shape', panelX + panelWidth / 2, shapeY - shopScrollOffset);
   
   const shapeBtnX = panelX + padding;
-  const shapeBtnY = shapeY + 10;
+  const shapeBtnY = shapeY + 10 - shopScrollOffset;
   const shapeBtnW = colorBtnWidth;
   const shapeBtnH = 24;
   
   const shapeUpgradeCost = levelSystem.upgradeCost;
-  const canBuyShape = levelSystem.currentLevel >= 2 && levelSystem.angles >= shapeUpgradeCost;
+  const maxSidesForLevel = levelSystem.currentLevel + 2;
+  const isMaxed = levelSystem.playerSides >= maxSidesForLevel;
+  const hasEnoughLevel = levelSystem.currentLevel >= 2;
+  const hasEnoughAngles = levelSystem.angles >= shapeUpgradeCost;
   
-  ctx.fillStyle = canBuyShape ? 'rgba(255, 200, 50, 0.2)' : 'rgba(100, 100, 100, 0.1)';
+  // Barva podle stavu
+  let shapeBackground, shapeBorder, shapeTextColor;
+  
+  if (!hasEnoughLevel) {
+    // ŠEDÁ - nemá level
+    shapeBackground = 'rgba(100, 100, 100, 0.1)';
+    shapeBorder = '#666666';
+    shapeTextColor = '#888888';
+  } else if (!hasEnoughAngles || isMaxed) {
+    // ČERVENÁ - nemá peníze nebo je na maximu
+    shapeBackground = 'rgba(255, 100, 100, 0.2)';
+    shapeBorder = '#ff6464';
+    shapeTextColor = '#ffffff';
+  } else {
+    // ŽLUTÁ - lze koupit
+    shapeBackground = 'rgba(255, 220, 0, 0.2)';
+    shapeBorder = '#ffdd00';
+    shapeTextColor = '#ffffff';
+  }
+  
+  ctx.fillStyle = shapeBackground;
   ctx.fillRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
   
-  ctx.strokeStyle = canBuyShape ? '#ffdd00' : '#666666';
+  ctx.strokeStyle = shapeBorder;
   ctx.lineWidth = 1;
   ctx.strokeRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
   
-  ctx.fillStyle = canBuyShape ? '#ffffff' : '#888888';
+  ctx.fillStyle = shapeTextColor;
   ctx.font = '8px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(`${levelSystem.playerSides}-gon → ${levelSystem.playerSides + 1}-gon (${shapeUpgradeCost}⊻)`, panelX + panelWidth / 2, shapeBtnY + 15);
+  const shapeStatusStr = !hasEnoughLevel ? '🔒' : '';
+  ctx.fillText(`${levelSystem.playerSides}-gon → ${levelSystem.playerSides + 1}-gon ${shapeStatusStr}`, panelX + panelWidth / 2, shapeBtnY + 12);
+  ctx.font = '7px Arial';
+  ctx.fillText(`(${shapeUpgradeCost}⊻) Max ${maxSidesForLevel}`, panelX + panelWidth / 2, shapeBtnY + 21);
   
   uiButtons.shapeUpgradeButton = { x: shapeBtnX, y: shapeBtnY, w: shapeBtnW, h: shapeBtnH };
+  
+  // Angle Multiplier upgrade
+  const angleGeoY = shapeBtnY + 50;
+  ctx.fillStyle = '#ff9f43';
+  ctx.font = 'bold 10px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('⬠ Angle Multiplier', panelX + panelWidth / 2, angleGeoY);
+  
+  const angleBtnX = panelX + padding;
+  const angleBtnY = angleGeoY + 10;
+  const angleBtnW = colorBtnWidth;
+  const angleBtnH = 24;
+  
+  const angleCost = 150;
+  const hasAngleMultiplier = shopSystem.hasAngleMultiplier;
+  const canAffordAngle = status.angles >= angleCost;
+  const currentAngleMultiplier = shopSystem.getAngleMultiplier(levelSystem.playerSides);
+  
+  // Barva podle stavu
+  let angleBackground, angleBorder, angleTextColor;
+  
+  if (hasAngleMultiplier) {
+    // ZELENÁ - již koupeno
+    angleBackground = 'rgba(0, 255, 100, 0.2)';
+    angleBorder = '#00ff64';
+    angleTextColor = '#ffffff';
+  } else if (canAffordAngle) {
+    // ČERVENÁ - lze koupit
+    angleBackground = 'rgba(255, 100, 100, 0.2)';
+    angleBorder = '#ff6464';
+    angleTextColor = '#ffffff';
+  } else {
+    // ŠEDÁ - nemůžu koupit
+    angleBackground = 'rgba(100, 100, 100, 0.1)';
+    angleBorder = '#666666';
+    angleTextColor = '#888888';
+  }
+  
+  ctx.fillStyle = angleBackground;
+  ctx.fillRect(angleBtnX, angleBtnY, angleBtnW, angleBtnH);
+  
+  ctx.strokeStyle = angleBorder;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(angleBtnX, angleBtnY, angleBtnW, angleBtnH);
+  
+  ctx.fillStyle = angleTextColor;
+  ctx.font = '8px Arial';
+  ctx.textAlign = 'center';
+  const angleStatusStr = hasAngleMultiplier ? '✓' : '';
+  ctx.fillText(`+${(currentAngleMultiplier - 1).toFixed(2)}x ${angleStatusStr} ${angleCost}⊻`, panelX + panelWidth / 2, angleBtnY + 15);
+  
+  uiButtons.angleMultiplierButton = { x: angleBtnX, y: angleBtnY, w: angleBtnW, h: angleBtnH };
+  
+  // XP Multiplier upgrade
+  const xpGeoY = angleBtnY + 50;
+  ctx.fillStyle = '#ff6b9d';
+  ctx.font = 'bold 10px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('⬠ XP Multiplier', panelX + panelWidth / 2, xpGeoY);
+  
+  const xpBtnX = panelX + padding;
+  const xpBtnY = xpGeoY + 10;
+  const xpBtnW = colorBtnWidth;
+  const xpBtnH = 24;
+  
+  const xpCost = 150;
+  const hasXPMultiplier = shopSystem.hasXPMultiplier;
+  const canAffordXP = status.angles >= xpCost;
+  const currentXPMultiplier = shopSystem.getXPMultiplier(levelSystem.playerSides);
+  
+  // Barva podle stavu
+  let xpBackground, xpBorder, xpTextColor;
+  
+  if (hasXPMultiplier) {
+    // ZELENÁ - již koupeno
+    xpBackground = 'rgba(0, 255, 100, 0.2)';
+    xpBorder = '#00ff64';
+    xpTextColor = '#ffffff';
+  } else if (canAffordXP) {
+    // ČERVENÁ - lze koupit
+    xpBackground = 'rgba(255, 100, 100, 0.2)';
+    xpBorder = '#ff6464';
+    xpTextColor = '#ffffff';
+  } else {
+    // ŠEDÁ - nemůžu koupit
+    xpBackground = 'rgba(100, 100, 100, 0.1)';
+    xpBorder = '#666666';
+    xpTextColor = '#888888';
+  }
+  
+  ctx.fillStyle = xpBackground;
+  ctx.fillRect(xpBtnX, xpBtnY, xpBtnW, xpBtnH);
+  
+  ctx.strokeStyle = xpBorder;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(xpBtnX, xpBtnY, xpBtnW, xpBtnH);
+  
+  ctx.fillStyle = xpTextColor;
+  ctx.font = '8px Arial';
+  ctx.textAlign = 'center';
+  const xpStatusStr = hasXPMultiplier ? '✓' : '';
+  ctx.fillText(`+${(currentXPMultiplier - 1).toFixed(2)}x ${xpStatusStr} ${xpCost}⊻`, panelX + panelWidth / 2, xpBtnY + 15);
+  
+  uiButtons.xpMultiplierButton = { x: xpBtnX, y: xpBtnY, w: xpBtnW, h: xpBtnH };
 }
 
 // TABLET LAYOUT (480px - 768px)
@@ -830,43 +1009,38 @@ function drawShopTablet(panelX, panelY, panelWidth, panelHeight) {
   
   for (let i = 0; i < 5; i++) {
     const upgrade = shopSystem.colorUpgrades[i];
-    const y = startY + 22 + i * 35;
+    const y = startY + 22 + i * 42;
     
     const isBought = shopSystem.selectedColorLevel > i;
     const isAffordable = status.angles >= shopSystem.getColorUpgradeCost(i + 1);
-    const isSelected = shopSystem.selectedColorLevel === i + 1;
-    const isLevelLocked = (i + 1) > (status.level - 1);
     
-    if (isLevelLocked) {
-      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
-    } else if (isBought) {
-      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
-    } else if (isSelected) {
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.3)';
+    // Barva podle stavu: Koupeno (zelené) / Lze koupit (červené) / Nemůžu koupit (šedé)
+    if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';  // ZELENÁ - koupeno
     } else if (isAffordable) {
-      ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';  // ČERVENÁ - lze koupit
     } else {
-      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';  // ŠEDÁ - nemůžu koupit
     }
     
     ctx.fillRect(panelX + padding, y, colWidth, 28);
     
+    // Border barva
     let borderColor = '#666666';
-    if (isLevelLocked) borderColor = '#444444';
-    if (isBought) borderColor = '#00ff64';
-    if (isSelected) borderColor = '#00ffff';
-    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#0088ff';
+    if (isBought) borderColor = '#00ff64';  // Zelená - koupeno
+    if (isAffordable && !isBought) borderColor = '#ff6464';  // Červená - lze koupit
     
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(panelX + padding, y, colWidth, 28);
     
-    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    // Text barva
+    ctx.fillStyle = isBought || isAffordable ? '#ffffff' : '#888888';
     ctx.font = '10px Arial';
     ctx.textAlign = 'left';
     
     const costStr = `${shopSystem.getColorUpgradeCost(i + 1)}⊻`;
-    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    const statusStr = isBought ? '✓' : (!isAffordable ? '🔒' : '');
     ctx.fillText(`${upgrade.name} ${statusStr}`, panelX + padding + 5, y + 8);
     ctx.fillText(costStr, panelX + padding + 5, y + 20);
     
@@ -882,43 +1056,38 @@ function drawShopTablet(panelX, panelY, panelWidth, panelHeight) {
   
   for (let i = 0; i < 5; i++) {
     const upgrade = shopSystem.sharpnessUpgrades[i];
-    const y = startY + 22 + i * 35;
+    const y = startY + 22 + i * 42;
     
     const isBought = shopSystem.selectedSharpnessLevel > i;
     const isAffordable = status.angles >= shopSystem.getSharpnessUpgradeCost(i + 1);
-    const isSelected = shopSystem.selectedSharpnessLevel === i + 1;
-    const isLevelLocked = (i + 1) > (status.level - 1);
     
-    if (isLevelLocked) {
-      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
-    } else if (isBought) {
-      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
-    } else if (isSelected) {
-      ctx.fillStyle = 'rgba(255, 100, 150, 0.3)';
+    // Barva podle stavu: Koupeno (zelené) / Lze koupit (červené) / Nemůžu koupit (šedé)
+    if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';  // ZELENÁ - koupeno
     } else if (isAffordable) {
-      ctx.fillStyle = 'rgba(255, 150, 200, 0.2)';
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';  // ČERVENÁ - lze koupit
     } else {
-      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';  // ŠEDÁ - nemůžu koupit
     }
     
     ctx.fillRect(rightX, y, colWidth, 28);
     
+    // Border barva
     let borderColor = '#666666';
-    if (isLevelLocked) borderColor = '#444444';
-    if (isBought) borderColor = '#00ff64';
-    if (isSelected) borderColor = '#ff6b9d';
-    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#ff9fbf';
+    if (isBought) borderColor = '#00ff64';  // Zelená - koupeno
+    if (isAffordable && !isBought) borderColor = '#ff6464';  // Červená - lze koupit
     
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(rightX, y, colWidth, 28);
     
-    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    // Text barva
+    ctx.fillStyle = isBought || isAffordable ? '#ffffff' : '#888888';
     ctx.font = '10px Arial';
     ctx.textAlign = 'left';
     
     const costStr = `${shopSystem.getSharpnessUpgradeCost(i + 1)}⊻`;
-    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    const statusStr = isBought ? '✓' : (!isAffordable ? '🔒' : '');
     ctx.fillText(`${upgrade.name} ${statusStr}`, rightX + 5, y + 8);
     ctx.fillText(costStr, rightX + 5, y + 20);
     
@@ -938,22 +1107,152 @@ function drawShopTablet(panelX, panelY, panelWidth, panelHeight) {
   const shapeBtnH = 26;
   
   const shapeUpgradeCost = levelSystem.upgradeCost;
-  const canBuyShape = levelSystem.currentLevel >= 2 && levelSystem.angles >= shapeUpgradeCost;
+  const maxSidesForLevel = levelSystem.currentLevel + 2;
+  const isMaxed = levelSystem.playerSides >= maxSidesForLevel;
+  const hasEnoughLevel = levelSystem.currentLevel >= 2;
+  const hasEnoughAngles = levelSystem.angles >= shapeUpgradeCost;
   
-  ctx.fillStyle = canBuyShape ? 'rgba(255, 200, 50, 0.2)' : 'rgba(100, 100, 100, 0.1)';
+  // Barva podle stavu
+  let shapeBackground, shapeBorder, shapeTextColor;
+  
+  if (!hasEnoughLevel) {
+    // ŠEDÁ - nemá level
+    shapeBackground = 'rgba(100, 100, 100, 0.1)';
+    shapeBorder = '#666666';
+    shapeTextColor = '#888888';
+  } else if (!hasEnoughAngles || isMaxed) {
+    // ČERVENÁ - nemá peníze nebo je na maximu
+    shapeBackground = 'rgba(255, 100, 100, 0.2)';
+    shapeBorder = '#ff6464';
+    shapeTextColor = '#ffffff';
+  } else {
+    // ŽLUTÁ - lze koupit
+    shapeBackground = 'rgba(255, 220, 0, 0.2)';
+    shapeBorder = '#ffdd00';
+    shapeTextColor = '#ffffff';
+  }
+  
+  ctx.fillStyle = shapeBackground;
   ctx.fillRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
   
-  ctx.strokeStyle = canBuyShape ? '#ffdd00' : '#666666';
+  ctx.strokeStyle = shapeBorder;
   ctx.lineWidth = 1.5;
   ctx.strokeRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
   
-  ctx.fillStyle = canBuyShape ? '#ffffff' : '#888888';
+  ctx.fillStyle = shapeTextColor;
   ctx.font = '9px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(`${levelSystem.playerSides}-gon → ${levelSystem.playerSides + 1}-gon`, panelX + panelWidth / 2, shapeBtnY + 8);
+  const shapeStatusStr = !hasEnoughLevel ? '🔒' : '';
+  ctx.fillText(`${levelSystem.playerSides}-gon → ${levelSystem.playerSides + 1}-gon ${shapeStatusStr}`, panelX + panelWidth / 2, shapeBtnY + 8);
   ctx.fillText(`(${shapeUpgradeCost}⊻)`, panelX + panelWidth / 2, shapeBtnY + 19);
   
   uiButtons.shapeUpgradeButton = { x: shapeBtnX, y: shapeBtnY, w: shapeBtnW, h: shapeBtnH };
+  
+  // Angle Multiplier upgrade - full width below shape
+  const angleGeoY = shapeY + 60;
+  ctx.fillStyle = '#ff9f43';
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('⬠ Angle Multiplier', panelX + panelWidth / 2, angleGeoY);
+  
+  const angleBtnX = panelX + padding;
+  const angleBtnY = angleGeoY + 10;
+  const angleBtnW = panelWidth - 2 * padding;
+  const angleBtnH = 28;
+  
+  const angleCost = 150;
+  const hasAngleMultiplier = shopSystem.hasAngleMultiplier;
+  const canAffordAngle = status.angles >= angleCost;
+  const currentAngleMultiplier = shopSystem.getAngleMultiplier(levelSystem.playerSides);
+  
+  // Barva podle stavu
+  let angleBackground, angleBorder, angleTextColor;
+  
+  if (hasAngleMultiplier) {
+    // ZELENÁ - již koupeno
+    angleBackground = 'rgba(0, 255, 100, 0.2)';
+    angleBorder = '#00ff64';
+    angleTextColor = '#ffffff';
+  } else if (canAffordAngle) {
+    // ČERVENÁ - lze koupit
+    angleBackground = 'rgba(255, 100, 100, 0.2)';
+    angleBorder = '#ff6464';
+    angleTextColor = '#ffffff';
+  } else {
+    // ŠEDÁ - nemůžu koupit
+    angleBackground = 'rgba(100, 100, 100, 0.1)';
+    angleBorder = '#666666';
+    angleTextColor = '#888888';
+  }
+  
+  ctx.fillStyle = angleBackground;
+  ctx.fillRect(angleBtnX, angleBtnY, angleBtnW, angleBtnH);
+  
+  ctx.strokeStyle = angleBorder;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(angleBtnX, angleBtnY, angleBtnW, angleBtnH);
+  
+  ctx.fillStyle = angleTextColor;
+  ctx.font = '9px Arial';
+  ctx.textAlign = 'left';
+  const angleStatusStr = hasAngleMultiplier ? '✓' : '';
+  ctx.fillText(`Bonus +${(currentAngleMultiplier - 1).toFixed(2)}x ${angleStatusStr}`, angleBtnX + 5, angleBtnY + 8);
+  ctx.fillText(`${currentAngleMultiplier.toFixed(1)}x multiplier | ${angleCost}⊻`, angleBtnX + 5, angleBtnY + 20);
+  
+  uiButtons.angleMultiplierButton = { x: angleBtnX, y: angleBtnY, w: angleBtnW, h: angleBtnH };
+  
+  // XP Multiplier upgrade - full width below angle
+  const xpGeoY = angleGeoY + 60;
+  ctx.fillStyle = '#ff6b9d';
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('⬠ XP Multiplier', panelX + panelWidth / 2, xpGeoY);
+  
+  const xpBtnX = panelX + padding;
+  const xpBtnY = xpGeoY + 10;
+  const xpBtnW = panelWidth - 2 * padding;
+  const xpBtnH = 28;
+  
+  const xpCost = 150;
+  const hasXPMultiplier = shopSystem.hasXPMultiplier;
+  const canAffordXP = status.angles >= xpCost;
+  const currentXPMultiplier = shopSystem.getXPMultiplier(levelSystem.playerSides);
+  
+  // Barva podle stavu
+  let xpBackground, xpBorder, xpTextColor;
+  
+  if (hasXPMultiplier) {
+    // ZELENÁ - již koupeno
+    xpBackground = 'rgba(0, 255, 100, 0.2)';
+    xpBorder = '#00ff64';
+    xpTextColor = '#ffffff';
+  } else if (canAffordXP) {
+    // ČERVENÁ - lze koupit
+    xpBackground = 'rgba(255, 100, 100, 0.2)';
+    xpBorder = '#ff6464';
+    xpTextColor = '#ffffff';
+  } else {
+    // ŠEDÁ - nemůžu koupit
+    xpBackground = 'rgba(100, 100, 100, 0.1)';
+    xpBorder = '#666666';
+    xpTextColor = '#888888';
+  }
+  
+  ctx.fillStyle = xpBackground;
+  ctx.fillRect(xpBtnX, xpBtnY, xpBtnW, xpBtnH);
+  
+  ctx.strokeStyle = xpBorder;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(xpBtnX, xpBtnY, xpBtnW, xpBtnH);
+  
+  ctx.fillStyle = xpTextColor;
+  ctx.font = '9px Arial';
+  ctx.textAlign = 'left';
+  const xpStatusStr = hasXPMultiplier ? '✓' : '';
+  ctx.fillText(`Bonus +${(currentXPMultiplier - 1).toFixed(2)}x ${xpStatusStr}`, xpBtnX + 5, xpBtnY + 8);
+  ctx.fillText(`${currentXPMultiplier.toFixed(1)}x multiplier | ${xpCost}⊻`, xpBtnX + 5, xpBtnY + 20);
+  
+  uiButtons.xpMultiplierButton = { x: xpBtnX, y: xpBtnY, w: xpBtnW, h: xpBtnH };
 }
 
 // DESKTOP LAYOUT (> 768px) - Původní design
@@ -971,7 +1270,7 @@ function drawShopDesktop(panelX, panelY, panelWidth, panelHeight) {
   
   for (let i = 0; i < 5; i++) {
     const upgrade = shopSystem.colorUpgrades[i];
-    const y = leftY + 35 + i * 40;
+    const y = leftY + 35 + i * 48;
     
     const btnX = leftX;
     const btnY = y - 15;
@@ -981,38 +1280,34 @@ function drawShopDesktop(panelX, panelY, panelWidth, panelHeight) {
     const isBought = shopSystem.selectedColorLevel > i;
     const isAffordable = status.angles >= shopSystem.getColorUpgradeCost(i + 1);
     const isSelected = shopSystem.selectedColorLevel === i + 1;
-    const isLevelLocked = (i + 1) > (status.level - 1);
     
-    if (isLevelLocked) {
-      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
-    } else if (isBought) {
-      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
-    } else if (isSelected) {
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.3)';
+    // Barva podle stavu: Koupeno (zelené) / Lze koupit (červené) / Nemůžu koupit (šedé)
+    if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';  // ZELENÁ - koupeno
     } else if (isAffordable) {
-      ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';  // ČERVENÁ - lze koupit
     } else {
-      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';  // ŠEDÁ - nemůžu koupit
     }
     
     ctx.fillRect(btnX, btnY, btnW, btnH);
     
+    // Border barva
     let borderColor = '#666666';
-    if (isLevelLocked) borderColor = '#444444';
-    if (isBought) borderColor = '#00ff64';
-    if (isSelected) borderColor = '#00ffff';
-    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#0088ff';
+    if (isBought) borderColor = '#00ff64';  // Zelená - koupeno
+    if (isAffordable && !isBought) borderColor = '#ff6464';  // Červená - lze koupit
     
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(btnX, btnY, btnW, btnH);
     
-    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    // Text barva
+    ctx.fillStyle = isBought || isAffordable ? '#ffffff' : '#888888';
     ctx.font = '11px Arial';
     ctx.textAlign = 'left';
     
     const costStr = `${shopSystem.getColorUpgradeCost(i + 1)}⊻`;
-    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    const statusStr = isBought ? '✓' : (!isAffordable ? '🔒' : '');
     
     ctx.fillText(`${upgrade.name} ${statusStr}`, btnX + 5, y - 2);
     ctx.fillText(upgrade.description + ' | ' + costStr, btnX + 5, y + 10);
@@ -1030,7 +1325,7 @@ function drawShopDesktop(panelX, panelY, panelWidth, panelHeight) {
   
   for (let i = 0; i < 5; i++) {
     const upgrade = shopSystem.sharpnessUpgrades[i];
-    const y = leftY + 35 + i * 40;
+    const y = leftY + 35 + i * 48;
     
     const btnX = rightX;
     const btnY = y - 15;
@@ -1039,39 +1334,34 @@ function drawShopDesktop(panelX, panelY, panelWidth, panelHeight) {
     
     const isBought = shopSystem.selectedSharpnessLevel > i;
     const isAffordable = status.angles >= shopSystem.getSharpnessUpgradeCost(i + 1);
-    const isSelected = shopSystem.selectedSharpnessLevel === i + 1;
-    const isLevelLocked = (i + 1) > (status.level - 1);
     
-    if (isLevelLocked) {
-      ctx.fillStyle = 'rgba(80, 80, 80, 0.2)';
-    } else if (isBought) {
-      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
-    } else if (isSelected) {
-      ctx.fillStyle = 'rgba(255, 100, 150, 0.3)';
+    // Barva podle stavu: Koupeno (zelené) / Lze koupit (červené) / Nemůžu koupit (šedé)
+    if (isBought) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';  // ZELENÁ - koupeno
     } else if (isAffordable) {
-      ctx.fillStyle = 'rgba(255, 150, 200, 0.2)';
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';  // ČERVENÁ - lze koupit
     } else {
-      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';  // ŠEDÁ - nemůžu koupit
     }
     
     ctx.fillRect(btnX, btnY, btnW, btnH);
     
+    // Border barva
     let borderColor = '#666666';
-    if (isLevelLocked) borderColor = '#444444';
-    if (isBought) borderColor = '#00ff64';
-    if (isSelected) borderColor = '#ff6b9d';
-    if (isAffordable && !isBought && !isLevelLocked) borderColor = '#ff9fbf';
+    if (isBought) borderColor = '#00ff64';  // Zelená - koupeno
+    if (isAffordable && !isBought) borderColor = '#ff6464';  // Červená - lze koupit
     
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(btnX, btnY, btnW, btnH);
     
-    ctx.fillStyle = isLevelLocked ? '#666666' : (isAffordable || isBought ? '#ffffff' : '#888888');
+    // Text barva
+    ctx.fillStyle = isBought || isAffordable ? '#ffffff' : '#888888';
     ctx.font = '11px Arial';
     ctx.textAlign = 'left';
     
     const costStr = `${shopSystem.getSharpnessUpgradeCost(i + 1)}⊻`;
-    const statusStr = isBought ? '✓' : (isSelected ? '●' : (isLevelLocked ? '🔒' : ''));
+    const statusStr = isBought ? '✓' : (!isAffordable ? '🔒' : '');
     
     ctx.fillText(`${upgrade.name} ${statusStr}`, btnX + 5, y - 2);
     ctx.fillText(upgrade.description + ' | ' + costStr, btnX + 5, y + 10);
@@ -1080,7 +1370,8 @@ function drawShopDesktop(panelX, panelY, panelWidth, panelHeight) {
   }
   
   // ===== UPGRADE TVARU - UPROSTŘED DOLE =====
-  const shapeY = panelY + panelHeight - 100;
+  // Posunuto výše aby se neprekrývalo s XP sectionem a level up buttonem
+  const shapeY = panelY + panelHeight - 200;
   
   ctx.fillStyle = '#ffdd00';
   ctx.font = 'bold 14px Arial';
@@ -1093,85 +1384,210 @@ function drawShopDesktop(panelX, panelY, panelWidth, panelHeight) {
   const shapeBtnH = 28;
   
   const shapeUpgradeCost = levelSystem.upgradeCost;
-  const canBuyShape = levelSystem.currentLevel >= 2 && levelSystem.angles >= shapeUpgradeCost;
+  const maxSidesForLevel = levelSystem.currentLevel + 2;
+  const isMaxed = levelSystem.playerSides >= maxSidesForLevel;  // Már je na maximu pro level
+  const hasEnoughLevel = levelSystem.currentLevel >= 2;  // Má dostatečný level
+  const hasEnoughAngles = levelSystem.angles >= shapeUpgradeCost;  // Má dost peněz
+  const canBuyShape = hasEnoughLevel && hasEnoughAngles && !isMaxed;
   
-  ctx.fillStyle = canBuyShape ? 'rgba(255, 200, 50, 0.2)' : 'rgba(100, 100, 100, 0.1)';
+  // Barva podle stavu
+  let shapeBackground, shapeBorder, shapeTextColor;
+  
+  if (!hasEnoughLevel) {
+    // ŠEDÁ - nemá level
+    shapeBackground = 'rgba(100, 100, 100, 0.1)';
+    shapeBorder = '#666666';
+    shapeTextColor = '#888888';
+  } else if (!hasEnoughAngles || isMaxed) {
+    // ČERVENÁ - nemá peníze nebo je na maximu
+    shapeBackground = 'rgba(255, 100, 100, 0.2)';
+    shapeBorder = '#ff6464';
+    shapeTextColor = '#ffffff';
+  } else {
+    // ŽLUTÁ - lze koupit
+    shapeBackground = 'rgba(255, 220, 0, 0.2)';
+    shapeBorder = '#ffdd00';
+    shapeTextColor = '#ffffff';
+  }
+  
+  ctx.fillStyle = shapeBackground;
   ctx.fillRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
   
-  ctx.strokeStyle = canBuyShape ? '#ffdd00' : '#666666';
+  ctx.strokeStyle = shapeBorder;
   ctx.lineWidth = 1.5;
   ctx.strokeRect(shapeBtnX, shapeBtnY, shapeBtnW, shapeBtnH);
   
-  ctx.fillStyle = canBuyShape ? '#ffffff' : '#888888';
+  ctx.fillStyle = shapeTextColor;
   ctx.font = '10px Arial';
   ctx.textAlign = 'left';
   
-  ctx.fillText(`${levelSystem.playerSides}-gon → ${levelSystem.playerSides + 1}-gon (${shapeUpgradeCost}⊻)`, shapeBtnX + 5, shapeBtnY + 9);
-  ctx.fillText(`Requires Level 2+`, shapeBtnX + 5, shapeBtnY + 20);
+  // Text - pokud není level, ukaž zámek
+  const shapeStatusStr = !hasEnoughLevel ? '🔒' : '';
+  ctx.fillText(`${levelSystem.playerSides}-gon → ${levelSystem.playerSides + 1}-gon ${shapeStatusStr} (${shapeUpgradeCost}⊻)`, shapeBtnX + 5, shapeBtnY + 9);
+  ctx.fillText(`Max ${maxSidesForLevel} sides on Lvl ${levelSystem.currentLevel}`, shapeBtnX + 5, shapeBtnY + 20);
   
   uiButtons.shapeUpgradeButton = { x: shapeBtnX, y: shapeBtnY, w: shapeBtnW, h: shapeBtnH };
   
-  // ===== LEVELUP TLAČÍTKO A PROGRESS - DOLE =====
-  const levelupBtnX = panelX + panelWidth / 2 - 105;
-  const levelupBtnY = panelY + panelHeight - 48;
-  const levelupBtnW = 210;
-  const levelupBtnH = 35;
+  // ===== ANGLE MULTIPLIER UPGRADE =====
+  const angleGeoY = shapeY + 62;
   
-  // ===== INFORMACE O XP NA PŘÍŠTÍ LEVEL =====
-  ctx.fillStyle = '#00ffff';
-  ctx.font = 'bold 11px Arial';
+  ctx.fillStyle = '#ff9f43';
+  ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(`Level ${status.level} → ${status.level + 1}`, panelX + panelWidth / 2, levelupBtnY - 38);
+  ctx.fillText('⬠ Angle Multiplier', panelX + panelWidth / 2, angleGeoY);
   
-  ctx.fillStyle = '#cccccc';
+  const angleBtnX = panelX + panelWidth / 2 - 95;
+  const angleBtnY = angleGeoY + 12;
+  const angleBtnW = 190;
+  const angleBtnH = 28;
+  
+  const angleCost = 150;
+  const hasAngleMultiplier = shopSystem.hasAngleMultiplier;
+  const canAffordAngle = status.angles >= angleCost;
+  const currentAngleMultiplier = shopSystem.getAngleMultiplier(levelSystem.playerSides);
+  
+  // Barva podle stavu
+  let angleBackground, angleBorder, angleTextColor;
+  
+  if (hasAngleMultiplier) {
+    // ZELENÁ - již koupeno
+    angleBackground = 'rgba(0, 255, 100, 0.2)';
+    angleBorder = '#00ff64';
+    angleTextColor = '#ffffff';
+  } else if (canAffordAngle) {
+    // ČERVENÁ - lze koupit
+    angleBackground = 'rgba(255, 100, 100, 0.2)';
+    angleBorder = '#ff6464';
+    angleTextColor = '#ffffff';
+  } else {
+    // ŠEDÁ - nemůžu koupit
+    angleBackground = 'rgba(100, 100, 100, 0.1)';
+    angleBorder = '#666666';
+    angleTextColor = '#888888';
+  }
+  
+  ctx.fillStyle = angleBackground;
+  ctx.fillRect(angleBtnX, angleBtnY, angleBtnW, angleBtnH);
+  
+  ctx.strokeStyle = angleBorder;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(angleBtnX, angleBtnY, angleBtnW, angleBtnH);
+  
+  ctx.fillStyle = angleTextColor;
   ctx.font = '9px Arial';
-  ctx.fillText(`${status.xp} / ${status.requiredXP} XP`, panelX + panelWidth / 2, levelupBtnY - 26);
+  ctx.textAlign = 'left';
+  const angleStatusStr = hasAngleMultiplier ? '✓' : '';
+  ctx.fillText(`+${(currentAngleMultiplier - 1).toFixed(2)}x bonus (${currentAngleMultiplier.toFixed(1)}x) ${angleStatusStr}`, angleBtnX + 5, angleBtnY + 9);
+  ctx.fillText(`${angleCost}⊻ | Permanent multiplier`, angleBtnX + 5, angleBtnY + 20);
   
-  // ===== PROGRESS BAR NA XP =====
-  const barX = levelupBtnX + 10;
-  const barY = levelupBtnY - 44;
-  const barW = levelupBtnW - 20;
-  const barH = 8;
+  uiButtons.angleMultiplierButton = { x: angleBtnX, y: angleBtnY, w: angleBtnW, h: angleBtnH };
   
-  // Tmavé pozadí baru
-  ctx.fillStyle = 'rgba(30, 50, 80, 0.8)';
-  ctx.fillRect(barX, barY, barW, barH);
+  // ===== XP MULTIPLIER UPGRADE =====
+  const xpGeoY = angleGeoY + 62;
   
-  // Vyplnění baru
-  const xpPercent = Math.min(100, (status.xp / status.requiredXP) * 100);
-  const xpGradient = ctx.createLinearGradient(barX, 0, barX + barW, 0);
-  xpGradient.addColorStop(0, '#ff6b9d');
-  xpGradient.addColorStop(1, '#9d4edd');
-  ctx.fillStyle = xpGradient;
-  ctx.fillRect(barX, barY, (barW * xpPercent) / 100, barH);
-  
-  // Border baru
-  ctx.strokeStyle = '#00ffff';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(barX, barY, barW, barH);
-  
-  // ===== LEVELUP TLAČÍTKO =====
-  const needsXP = status.xp < status.requiredXP;
-  
-  ctx.fillStyle = needsXP ? 'rgba(150, 150, 150, 0.1)' : 'rgba(0, 255, 100, 0.2)';
-  ctx.fillRect(levelupBtnX, levelupBtnY, levelupBtnW, levelupBtnH);
-  
-  ctx.strokeStyle = needsXP ? '#666666' : '#00ff64';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(levelupBtnX, levelupBtnY, levelupBtnW, levelupBtnH);
-  
-  ctx.fillStyle = needsXP ? '#888888' : '#00ff64';
-  ctx.font = 'bold 14px Arial';
+  ctx.fillStyle = '#ff6b9d';
+  ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(needsXP ? 'MORE XP NEEDED' : '✦ LEVEL UP ✦', panelX + panelWidth / 2, levelupBtnY + levelupBtnH / 2 + 5);
+  ctx.fillText('⬠ XP Multiplier', panelX + panelWidth / 2, xpGeoY);
   
-  uiButtons.levelUpButton = { x: levelupBtnX, y: levelupBtnY, w: levelupBtnW, h: levelupBtnH };
+  const xpBtnX = panelX + panelWidth / 2 - 95;
+  const xpBtnY = xpGeoY + 12;
+  const xpBtnW = 190;
+  const xpBtnH = 28;
+  
+  const xpCost = 150;
+  const hasXPMultiplier = shopSystem.hasXPMultiplier;
+  const canAffordXP = status.angles >= xpCost;
+  const currentXPMultiplier = shopSystem.getXPMultiplier(levelSystem.playerSides);
+  
+  // Barva podle stavu
+  let xpBackground, xpBorder, xpTextColor;
+  
+  if (hasXPMultiplier) {
+    // ZELENÁ - již koupeno
+    xpBackground = 'rgba(0, 255, 100, 0.2)';
+    xpBorder = '#00ff64';
+    xpTextColor = '#ffffff';
+  } else if (canAffordXP) {
+    // ČERVENÁ - lze koupit
+    xpBackground = 'rgba(255, 100, 100, 0.2)';
+    xpBorder = '#ff6464';
+    xpTextColor = '#ffffff';
+  } else {
+    // ŠEDÁ - nemůžu koupit
+    xpBackground = 'rgba(100, 100, 100, 0.1)';
+    xpBorder = '#666666';
+    xpTextColor = '#888888';
+  }
+  
+  ctx.fillStyle = xpBackground;
+  ctx.fillRect(xpBtnX, xpBtnY, xpBtnW, xpBtnH);
+  
+  ctx.strokeStyle = xpBorder;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(xpBtnX, xpBtnY, xpBtnW, xpBtnH);
+  
+  ctx.fillStyle = xpTextColor;
+  ctx.font = '9px Arial';
+  ctx.textAlign = 'left';
+  const xpStatusStr = hasXPMultiplier ? '✓' : '';
+  ctx.fillText(`+${(currentXPMultiplier - 1).toFixed(2)}x bonus (${currentXPMultiplier.toFixed(1)}x) ${xpStatusStr}`, xpBtnX + 5, xpBtnY + 9);
+  ctx.fillText(`${xpCost}⊻ | Permanent multiplier`, xpBtnX + 5, xpBtnY + 20);
+  
+  uiButtons.xpMultiplierButton = { x: xpBtnX, y: xpBtnY, w: xpBtnW, h: xpBtnH };
 }
 
 // ===================================================================
 // KONEC SHOP SYSTÉMU
 // ===================================================================
 
+// ===================================================================
+// SCROLL EVENT LISTENERY - Scrollování v shopu
+// ===================================================================
 
+// Wheel scroll - myš/trackpad
+canvas.addEventListener('wheel', (e) => {
+  // Ignoruj scroll pokud není shop otevřený
+  if (!shopOpen) return;
+  
+  e.preventDefault();  // Zakáž výchozí scrollování stránky
+  
+  // Zvýší offset při scroll dolů, sníží při scroll nahoru
+  const scrollSpeed = 20;
+  shopScrollOffset += e.deltaY > 0 ? scrollSpeed : -scrollSpeed;
+  
+  // Maximální offset - poslední prvek (XP multiplier) by měl mít 50px od spodku
+  // Celkový obsah je cca 560px, panel je cca 500px, takže max offset ~60px
+  // Bezpečný limit: 560px (poslední prvek + padding)
+  const maxScrollOffset = 560;
+  shopScrollOffset = Math.max(0, Math.min(shopScrollOffset, maxScrollOffset));
+}, { passive: false });
 
+// Touch swipe - mobilní zařízení
+let touchStartY = 0;
+canvas.addEventListener('touchstart', (e) => {
+  touchStartY = e.touches[0].clientY;
+});
 
+canvas.addEventListener('touchmove', (e) => {
+  if (!shopOpen) return;
+  
+  const touchCurrentY = e.touches[0].clientY;
+  const touchDelta = touchStartY - touchCurrentY;  // Kladná hodnota = scroll dolů
+  
+  // Aplikuj scroll offset
+  const scrollSpeed = 1;
+  shopScrollOffset += touchDelta * scrollSpeed;
+  
+  // Omez scroll limit na poslední prvek + padding
+  const maxScrollOffset = 560;
+  shopScrollOffset = Math.max(0, Math.min(shopScrollOffset, maxScrollOffset));
+  
+  touchStartY = touchCurrentY;
+}, { passive: true });
+
+// Reset scroll offsetu při zavření shopu
+export function closeShopAndReset() {
+  shopOpen = false;
+  shopScrollOffset = 0;
+}

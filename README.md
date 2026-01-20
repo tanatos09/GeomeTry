@@ -1,205 +1,384 @@
-# GeomeTry - A Geometry-Based Arcade Game
+# 🎮 GeomeTry – Geometry-Based Arcade Game
+
+👉 Playable demo: https://tanatos09.github.io/GeomeTry/  
+📦 Source code: https://github.com/tanatos09/GeomeTry  
+💬 Discord (community & ideas): https://discord.gg/ym3J6jfp  
+💼 LinkedIn: https://www.linkedin.com/in/tomasfrank  
+
+🚧 Status: Active development (playable, core gameplay finished)
+
+---
+
+## TL;DR
+- Arcade game focused on geometry-based progression
+- Collect angles, defeat enemies, upgrade your shape
+- 100% code, 0% textures
+- Endless improvement → clear goal coming soon: **Become a circle**
+
+---
 
 ## Overview
 
-GeomeTry is an interactive arcade-style game where the player controls a geometric polygon (starting as a triangle) and navigates through obstacles while collecting floating angles to earn upgrades and level up. The game features a progressive upgrade system with two main upgrade paths: **Color upgrades** (for collecting angles) and **Sharpness upgrades** (for earning XP from enemy kills).
+**GeomeTry** is an arcade-style game where the player controls a geometric polygon — starting as a simple triangle — and navigates through obstacles, defeats enemies, and collects floating V-shaped angles to grow stronger.
+
+The core gameplay loop is already finished and playable. Current development focuses on polishing visuals, UI details, and gradually expanding the game with a simple story and idle mechanics.
+
+---
+
+## Story (Early Concept)
+
+Geome is a small triangle living in a world of shapes.
+
+He falls in love with a mysterious **Star**, but Stars can only exist alongside smooth, rounded forms. Sharp edges disturb their inner structure.
+
+To be together, Geome must go through a journey of transformation — adding sides, refining his shape, and slowly becoming closer to a **perfect circle**.
+
+At first, the game is endless and focused purely on improvement. Soon, it will gain a clear narrative goal: **become a circle**.
+
+---
 
 ## Game Features
 
-- **Progressive Leveling System**: Earn XP by defeating enemies and gain angles by collecting floating angle collectibles
-- **Two Upgrade Paths**:
-  - **Color Upgrades**: Red → Orange → Gold → Turquoise → Purple (increase angle collection bonuses)
-  - **Sharpness Upgrades**: Sharp → Very Sharp → Steel → Diamond → Plasma (increase XP per enemy kill)
-- **Shape Upgrades**: Unlock new player shapes (more sides = more complex polygons) at Level 2+
-- **Enemy Combat**: Defeat enemies with different polygon shapes to earn XP and angles
-- **Obstacle Navigation**: Dodge obstacles while moving through the level
-- **Visual Effects**: Particle explosions, angle collection animations, and levelup auras
-- **Mobile-Friendly Controls**: Play with mouse clicks or touch on mobile devices
-- **Shop System**: Click-based UI for purchasing upgrades with collected angles
+- Progressive leveling system based on enemy defeats
+- Five upgrade categories:
+  - Color Upgrades – increase angle gains
+  - Sharpness Upgrades – increase XP from enemies
+  - Shape Upgrades – add sides to your polygon
+  - Angle Multiplier – multiplies all collected angles
+  - XP Multiplier – multiplies all XP gains
+- Enemy combat with different polygon shapes
+- Obstacle navigation with precise timing
+- Physics-based collectibles (bouncing V-shaped angles)
+- Visual effects: particles, collection animations, level-up auras
+- Mobile-friendly controls
+- Responsive shop UI (desktop, tablet, mobile)
+
+---
 
 ## Game Mechanics
 
 ### Currency & Resources
 
-- **Angles (⊻)**: Primary currency collected from floating angle pickups and enemy kills
-  - Base collection: 1 angle per pickup + color bonus
-  - Base enemy kill: 2 angles + color bonus
-  - Color upgrade bonus: +1 to +15 angles per collection
+**Angles (⊻)**  
+Primary currency used for upgrades.
+- Base pickup: 1 ⊻ + color bonus
+- Enemy defeat: 2 ⊻ + color bonus
+- Color bonus: +1 → +15 ⊻
 
-- **XP**: Experience points earned by defeating enemies
-  - Base XP: 1 per enemy side + sharpness bonus
-  - Sharpness upgrade bonus: +1 to +20 XP per enemy
+**XP**  
+Used for leveling.
+- Base XP: 1 per enemy side + sharpness bonus
+- Sharpness bonus: +1 → +20 XP
 
-### Leveling
+---
 
-- Each level requires an exponentially increasing amount of XP
-- Formula: `XP Required = baseXP * (multiplier ^ (level - 1))`
-- Base XP for Level 1: 30 XP
+### Leveling System
+
+XP requirements grow exponentially.
+
+- Base XP (Level 1): 30
 - Multiplier: 3x per level
 
-### Upgrades
+---
 
-#### Color Upgrades (Left side of shop)
+## Upgrades
+
+### Color Upgrades (Left side of shop)
+
 | Tier | Name | Cost | Bonus |
-|------|------|------|-------|
+|----|------|------|-------|
 | 1 | Red | 10⊻ | +1 angle |
 | 2 | Orange | 20⊻ | +2 angles |
 | 3 | Gold | 35⊻ | +5 angles |
 | 4 | Turquoise | 55⊻ | +10 angles |
 | 5 | Purple | 80⊻ | +15 angles |
 
-#### Sharpness Upgrades (Right side of shop)
+---
+
+### Sharpness Upgrades (Right side of shop)
+
 | Tier | Name | Cost | Bonus |
-|------|------|------|-------|
+|----|------|------|-------|
 | 1 | Sharp | 10⊻ | +1 XP |
 | 2 | Very Sharp | 20⊻ | +2 XP |
 | 3 | Steel | 35⊻ | +5 XP |
 | 4 | Diamond | 55⊻ | +10 XP |
 | 5 | Plasma | 80⊻ | +20 XP |
 
-#### Shape Upgrades
-- Cost: 10⊻
+---
+
+### Shape Upgrades
+- Cost: 10 ⊻
 - Requirement: Level 2+
-- Effect: Increases player polygon from 3 sides → 4 sides → 5 sides, etc.
-
-## How to Play
-
-1. **Jump**: Click/touch the screen or press Space/Arrow Up
-2. **Open Shop**: Click the shop icon in the top-left corner
-3. **Buy Upgrades**: Click on an upgrade to purchase it (if you have enough angles)
-4. **Close Shop**: Click the X button in the top-right of the shop panel
-5. **Objective**: Survive obstacles, defeat enemies, collect angles, and reach higher levels
-
-## Controls
-
-- **Mouse/Touch**: Click to jump or interact with shop
-- **Keyboard**: 
-  - Space / Arrow Up: Jump
-  - U: Buy shape upgrade (legacy)
-
-## Technical Stack
-
-- **Language**: JavaScript (ES6 modules)
-- **Rendering**: HTML5 Canvas 2D Context
-- **Architecture**: Module-based with EntityManager pattern
-- **Physics**: Custom gravity and collision detection
-- **Input**: Mouse/Touch and Keyboard events
-
-## Visual Style
-
-- **Color Scheme**: Cosmic/Space theme with neon colors
-- **Player**: Cyan (#00f0ff) polygon with color upgrades available
-- **Enemies**: Random polygons with red outlines
-- **Background**: Semi-transparent decorative polygons in blues and purples
-- **Effects**: Orange particles for explosions, neon green for highlights
-
-## Browser Compatibility
-
-- Requires ES6 module support
-- Modern Canvas 2D API
-- Works on desktop and mobile browsers
-- Touch-friendly UI for mobile devices
+- Effect: Adds a side to the player shape (3 → 4 → 5 → …)
+- More sides = stronger multipliers
 
 ---
 
-# GeomeTry - Geometrická Arkádová Hra
+### Geometry Multipliers
+
+| Shape | Multiplier |
+|------|-----------|
+| Triangle (3) | 1.2x |
+| Square (4) | 1.4x |
+| Pentagon (5) | 1.6x |
+| Hexagon (6) | 1.8x |
+
+- Cost: 150 ⊻ each
+- Permanent effect (no reset on level-up)
+
+---
+
+## How to Play
+
+1. Jump – Click / Touch / Space / Arrow Up
+2. Open Shop – Shop icon or S
+3. Buy Upgrades – Click on an upgrade
+4. Scroll Shop – Mouse wheel or swipe
+5. Close Shop – X button
+6. Goal – Survive, improve, evolve
+
+---
+
+## Controls
+
+- Mouse / Touch – Jump & UI
+- Keyboard:
+  - Space / Arrow Up – Jump
+  - S – Open shop
+  - U – Buy shape upgrade (legacy)
+
+---
+
+## Technical Stack
+
+- Language: JavaScript (ES6 modules)
+- Rendering: HTML5 Canvas 2D
+- Architecture: Modular, EntityManager pattern
+- Physics: Custom gravity, collision & bounce mechanics
+- Responsive layouts: Mobile / Tablet / Desktop
+
+---
+
+## Visual Style
+
+- Cosmic / space-inspired theme
+- Neon colors
+- Minimalist geometry-based visuals
+- 100% code, no textures
+
+---
+
+## Development & Community
+
+GeomeTry is a solo indie project.
+
+The game is currently:
+- Playable
+- Mechanically complete
+- Being polished (UI, visuals)
+- Story development just starting
+- Idle mechanics planned
+
+I am currently building a community on Discord, where ideas and future features are discussed.
+
+---
+
+## Browser Compatibility
+
+- ES6 modules required
+- Modern Canvas 2D API
+- Desktop & mobile browsers supported
+- Touch-friendly UI
+
+
+
+# 🎮 GeomeTry – Geometrická Arkádová Hra
+
+👉 Hratelné demo: https://tanatos09.github.io/GeomeTry/  
+📦 Zdrojový kód: https://github.com/tanatos09/GeomeTry  
+💬 Discord (komunita & nápady): https://discord.gg/ym3J6jfp  
+💼 LinkedIn: https://www.linkedin.com/in/tomasfrank  
+
+🚧 Stav: Aktivní vývoj (hratelné, základní mechaniky hotové)
+
+---
+
+## TL;DR
+- Arkádová hra založená na geometrické progresi
+- Sbírej úhly, porážej nepřátele, vylepšuj svůj tvar
+- 100 % kód, 0 % textury
+- Nekonečné zlepšování → brzy jasný cíl: **stát se kruhem**
+
+---
 
 ## Přehled
 
-GeomeTry je interaktivní arkádová hra, kde hráč ovládá geometrický polygon (začíná jako trojúhelník) a naviguje se skrz překážky, zatímco sbírá létající úhly, aby si koupil vylepšení a dosáhl vyšších úrovní. Hra obsahuje progresivní systém vylepšení se dvěma hlavními cestami: **Barevné upgrady** (pro sběr úhlů) a **Upgrady ostrosti** (pro zisk XP z vražd nepřátel).
+**GeomeTry** je arkádová hra, ve které hráč ovládá geometrický polygon — začíná jako jednoduchý trojúhelník — a prochází překážkami, poráží nepřátele a sbírá létající V-tvary úhlů, aby se postupně zlepšoval.
+
+Základní herní smyčka je hotová a plně hratelná. Aktuální vývoj se zaměřuje na doladění vizuálu, UI a postupné přidání jednoduchého příběhu a idle prvků.
+
+---
+
+## Příběh (raný koncept)
+
+Geome je malý trojúhelník žijící ve světě tvarů.
+
+Zamiluje se do tajemné **Hvězdy**, ale Hvězdy mohou existovat pouze vedle hladkých, kulatých tvarů. Ostré hrany narušují jejich vnitřní strukturu.
+
+Aby mohli být spolu, musí Geome projít cestou transformace — přidávat strany, zdokonalovat svůj tvar a postupně se přibližovat **dokonalému kruhu**.
+
+Zpočátku je hra nekonečná a zaměřená čistě na zlepšování. Brzy ale získá jasný příběhový cíl: **stát se kruhem**.
+
+---
 
 ## Herní Vlastnosti
 
-- **Progresivní Systém Úrovní**: Získávej XP zabíjením nepřátel a sbírej úhly ze sběru létajících úhlů
-- **Dva Upgrady**:
-  - **Barevné Upgrady**: Rudá → Oranžová → Zlatá → Tyrkysová → Purpurová (zvyšují bonusy sběru úhlů)
-  - **Upgrady Ostrosti**: Ostré → Velmi ostré → Ocelové → Diamantové → Plazmové (zvyšují XP za nepřátele)
-- **Upgrady Tvaru**: Odemkni nové tvary hráče (více stran = komplexnější polygony) na úrovni 2+
-- **Boj s Nepřáteli**: Poraz nepřátele s různými tvary polygonů a získej XP a úhly
-- **Navigace Překážkami**: Vyhýbej se překážkám během pohybu hrou
-- **Vizuální Efekty**: Explozivní částice, animace sběru úhlů, aury levelupu
-- **Mobilní Ovládání**: Hrej pomocí kliknutí myší nebo dotyku na mobilních zařízeních
-- **Systém Obchodu**: Klikací UI pro nákup vylepšení za sbírané úhly
+- Progresivní systém levelování založený na porážení nepřátel
+- Pět kategorií upgradů:
+  - Barevné upgrady – zvyšují zisk úhlů
+  - Upgrady ostrosti – zvyšují XP z nepřátel
+  - Upgrady tvaru – přidávají strany polygonu
+  - Násobitel úhlů – násobí všechny získané úhly
+  - Násobitel XP – násobí všechny získané XP
+- Souboje s nepřáteli různých tvarů
+- Navigace skrz překážky s důrazem na timing
+- Sbíratelné objekty s realistickou fyzikou
+- Vizuální efekty: částice, animace sběru, aury levelupu
+- Mobilní ovládání
+- Responzivní obchod (desktop, tablet, mobil)
+
+---
 
 ## Herní Mechaniky
 
 ### Měna a Zdroje
 
-- **Úhly (⊻)**: Primární měna sbíraná z létajících sbírek úhlů a z vražd nepřátel
-  - Základní sběr: 1 úhel za sbírku + barevný bonus
-  - Základní nepřítel: 2 úhly + barevný bonus
-  - Barevný bonus: +1 až +15 úhlů za sběr
+**Úhly (⊻)**  
+Primární měna pro upgrady.
+- Základní sběr: 1 ⊻ + barevný bonus
+- Porážení nepřátel: 2 ⊻ + barevný bonus
+- Barevný bonus: +1 → +15 ⊻
 
-- **XP**: Body zkušenosti získané zabíjením nepřátel
-  - Základní XP: 1 za stranu nepřítele + bonus ostrosti
-  - Bonus ostrosti: +1 až +20 XP za nepřítele
+**XP**
+- Základní XP: 1 za stranu nepřítele + bonus ostrosti
+- Bonus ostrosti: +1 → +20 XP
+
+---
 
 ### Levelování
 
-- Každá úroveň vyžaduje exponenciálně rostoucí množství XP
-- Formule: `XP Potřebný = základníXP * (násobitel ^ (úroveň - 1))`
-- Základní XP pro Úroveň 1: 30 XP
+- Základní XP (úroveň 1): 30
 - Násobitel: 3x za úroveň
 
-### Upgrady
+---
 
-#### Barevné Upgrady (Levá strana obchodu)
+## Upgrady
+
+### Barevné Upgrady (Levá strana obchodu)
+
 | Úroveň | Název | Cena | Bonus |
-|--------|-------|------|-------|
+|------|------|------|-------|
 | 1 | Rudá | 10⊻ | +1 úhel |
 | 2 | Oranžová | 20⊻ | +2 úhly |
 | 3 | Zlatá | 35⊻ | +5 úhlů |
 | 4 | Tyrkysová | 55⊻ | +10 úhlů |
 | 5 | Purpurová | 80⊻ | +15 úhlů |
 
-#### Upgrady Ostrosti (Pravá strana obchodu)
+---
+
+### Upgrady Ostrosti (Pravá strana obchodu)
+
 | Úroveň | Název | Cena | Bonus |
-|--------|-------|------|-------|
+|------|------|------|-------|
 | 1 | Ostré | 10⊻ | +1 XP |
 | 2 | Velmi ostré | 20⊻ | +2 XP |
 | 3 | Ocelové | 35⊻ | +5 XP |
 | 4 | Diamantové | 55⊻ | +10 XP |
 | 5 | Plazmové | 80⊻ | +20 XP |
 
-#### Upgrady Tvaru
-- Cena: 10⊻
+---
+
+### Upgrady Tvaru
+- Cena: 10 ⊻
 - Požadavek: Úroveň 2+
-- Efekt: Zvýší polygon hráče z 3 stran → 4 strany → 5 stran, atd.
+- Efekt: Přidává stranu polygonu (3 → 4 → 5 → …)
+- Více stran = silnější multiplikátory
+
+---
+
+### Geometrické Multiplikátory
+
+| Tvar | Násobitel |
+|----|-----------|
+| Trojúhelník | 1.2x |
+| Čtverec | 1.4x |
+| Pětiúhelník | 1.6x |
+| Šestiúhelník | 1.8x |
+
+- Cena: 150 ⊻ každý
+- Trvalý efekt (bez resetu po levelupu)
+
+---
 
 ## Jak Hrát
 
-1. **Skok**: Klikni/dotykni obrazovku nebo stiskni Space/Šipka Nahoru
-2. **Otevři Obchod**: Klikni na ikonu obchodu v levém horním rohu
-3. **Kupuj Upgrady**: Klikni na upgrade, který chceš koupit (pokud máš dost úhlů)
-4. **Zavři Obchod**: Klikni na tlačítko X v pravém horním rohu panelu obchodu
-5. **Cíl**: Přežij překážky, poraz nepřátele, sbírej úhly a dosáhni vyšších úrovní
+1. Skok – Klik / Dotyk / Space / Šipka nahoru
+2. Otevřít obchod – Ikona obchodu nebo S
+3. Koupit upgrade – Kliknutím
+4. Scroll obchodu – Kolečko myši nebo swipe
+5. Zavřít obchod – Tlačítko X
+6. Cíl – Přežít, zlepšovat se, transformovat se
+
+---
 
 ## Ovládání
 
-- **Myš/Dotyk**: Klikni na skok nebo interakci s obchodem
-- **Klávesnice**:
-  - Mezerník / Šipka Nahoru: Skok
-  - U: Kup upgrade tvaru (legacy)
+- Myš / Dotyk – Skok a UI
+- Klávesnice:
+  - Space / Šipka nahoru – Skok
+  - S – Obchod
+  - U – Upgrade tvaru (legacy)
+
+---
 
 ## Technický Stack
 
-- **Jazyk**: JavaScript (ES6 moduly)
-- **Vykreslování**: HTML5 Canvas 2D Context
-- **Architektura**: Modulární s vzorem EntityManager
-- **Fyzika**: Vlastní gravitace a detekce kolizí
-- **Vstup**: Události myši/dotyku a klávesnice
+- Jazyk: JavaScript (ES6 moduly)
+- Vykreslování: HTML5 Canvas 2D
+- Architektura: Modulární, EntityManager vzor
+- Fyzika: Vlastní gravitace, kolize a odrazy
+- Responzivní rozvržení: Mobil / Tablet / Desktop
+
+---
 
 ## Vizuální Styl
 
-- **Barevné Schéma**: Kosmické/Space téma s neonovými barvami
-- **Hráč**: Azurový (#00f0ff) polygon s dostupnými barevnými upgrady
-- **Nepřátelé**: Náhodné polygony s červenými obrysy
-- **Pozadí**: Semi-průhledné dekorativní polygony v modrých a fialových tónech
-- **Efekty**: Oranžové částice na exploze, neonově zelené na zvýraznění
+- Kosmické / space téma
+- Neonové barvy
+- Minimalistická geometrie
+- 100 % kód, žádné textury
+
+---
+
+## Vývoj & Komunita
+
+GeomeTry je sólový indie projekt.
+
+Aktuální stav:
+- Hratelné
+- Mechanicky hotové
+- Probíhá ladění vizuálu a UI
+- Začíná vývoj příběhu
+- Plánované idle prvky
+
+Momentálně buduju komunitu na Discordu, kde se sdílí nápady a směr dalšího vývoje.
+
+---
 
 ## Kompatibilita Prohlížečů
 
-- Vyžaduje podporu ES6 modulů
+- Vyžaduje ES6 moduly
 - Moderní Canvas 2D API
-- Funguje na stolních i mobilních prohlížečích
-- Přívětivé dotyku UI pro mobilní zařízení
+- Podpora desktopu i mobilu
+- Dotykově přívětivé UI

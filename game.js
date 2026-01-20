@@ -20,6 +20,7 @@ import { updateEnemyEffects, drawEnemyEffects } from "./enemyEffects.js"; // Efe
 import { levelSystem } from './leveling.js'; // Systém úrovní a XP
 import { angleManager } from './angles.js'; // Systém sbíraných úhlů
 import { updateAngleEffects, drawAngleEffects } from './angleEffects.js'; // Efekty úhlů
+import { initAudio } from './audio.js'; // Zvuk a hudba
 
 // Získání canvas elementu z HTML - je potřeba aby byl <canvas id="game"></canvas> v index.html
 const canvas = document.getElementById('game');
@@ -59,6 +60,14 @@ resize();
 // Nastavíme ovládání (klikání myší, stisknutí kláves)
 setupInput();
 
+// Inicializujeme audio systém (pro zvukové efekty při interakci)
+// POZNÁMKA: Audio se inicializuje až po první interakci uživatele (click/tap)
+// Toto je nutné kvůli autoplay policy v moderních prohlížečích
+document.addEventListener('click', () => {
+  initAudio();
+  // playBackgroundMusic(); // Vypnuto - chceme jen zvukové efekty
+}, { once: true }); // only once - stane se jen poprvé
+
 // ============================================================
 // FUNKCE: gameLoop()
 // Účel: HLAVNÍ HERNÍ SMYČKA - Tato funkce běží ~60x za sekundu
@@ -86,7 +95,7 @@ function gameLoop() {
 
   // ========== FÁZE 3: PŘEKÁŽKY ==========
   
-  // Generujeme nové překážky (náhodně každých ~100 snímků)
+  // Generujeme nové překážky (náhodně každých ~150 snímků)
   generateObstacles(width, height, config.floorHeight, isColliding);
   
   // Posouváme překážky doleva (zastavíme při kolizi)
@@ -129,8 +138,8 @@ function gameLoop() {
   // Generujeme nové letající úhly na obrazovce
   angleManager.generate(width, height, config.floorHeight);
   
-  // Aktualizujeme jejich pohyb (drift, vlnování, zpomalení při kolizi)
-  angleManager.update(isColliding, height);
+  // Aktualizujeme jejich pohyb (drift, vlnování, zpomalení při kolizi, bounce)
+  angleManager.update(isColliding, height, config.floorHeight);
   
   // Odstraňujeme úhly mimo obrazovku
   angleManager.removeOffscreen();

@@ -97,10 +97,15 @@
 - XP integrání: levelSystem.addXP
 
 #### [angles.js](angles.js)
-**Sbírané Úhly - Fyzika Kolektibilů**
+**Sbírané Úhly - Fyzika Kolektibilů s Bounce**
 - Spawn rate: dynamic dle canvasHeight (difficulty scaling)
 - Pohyb: vx=-3 (doleva), sinusoidální wave motion
 - Wave: vy += sin(rotation) × 0.08
+- **BOUNCE FYZIKA**: Odskok od podlahy (vy *= -0.8) a stropu
+  - Detekce: y + angleSize > floorY nebo y - angleSize < 0
+  - Tlumení: -0.8 faktor (energie ztráta)
+  - Limit: max |vy| = 3 px/frame (prevent erratic motion)
+- **V-TVAR (45°)**: Dvě čáry tvořící inverzní úhel ∨ místo <
 - Kolize s překážkami: spawnAngleBreak efekt
 - Hráč sběr: proximity check (radius+angleSize+10)
 - Čištění: removeOffscreen (x < -20)
@@ -110,48 +115,52 @@
 ### 🎮 PROGRESNÍ SYSTÉM (2 soubory)
 
 #### [leveling.js](leveling.js)
-**Progrese Hráče - XP a Levely**
+**Progrese Hráče - XP, Levely & Multiplikátory**
 - State: currentLevel, currentXP, playerSides, angles
 - XP Formula: baseXP (30) × 3^(level-1)
 - Příklady: L1=30, L2=90, L3=270, L4=810
-- addXP(): XP + Sharpness bonus + angles + Color bonus
-- levelUp(): Triggers aura effect, resets upgrades
+- addXP(): Base XP + Sharpness bonus → **XP Multiplier** → **Math.floor()**
+- addAnglesFromCollect(): Base angles + Color bonus → **Angle Multiplier** → **Math.floor()**
+- levelUp(): Triggers aura effect, resets color/sharpness (ne multiplikátory!)
 - buyUpgrade(): Costs incremental (10→35→60→85...)
 - Aura effect: 60 frames fade-out animation
 
 #### [shop.js](shop.js)
-**Upgrade Systém - Nákupy a Bonusy**
+**Upgrade Systém - 5 Kategorií s Geometrickými Multiplikátory**
 - 5 Color Upgrades: Red→Orange→Gold→Turquoise→Purple
-  - Bonusy: +1→+2→+5→+10→+15 angles
+  - Bonusy: +1→+2→+5→+10→+15 angles (Reset: Ano)
   - Cena: 10→20→35→55→80 ⊻
 - 5 Sharpness Upgrades: Sharp→VerySharp→Steel→Diamond→Plasma
-  - Bonusy: +1→+2→+5→+10→+20 XP
+  - Bonusy: +1→+2→+5→+10→+20 XP (Reset: Ano)
   - Cena: 10→20→35→55→80 ⊻
-- Metody: getAngleBonusMultiplier, getXPBonusMultiplier
-- resetUpgrades(): Called on levelup
+- Shape Upgrades: +1 strana za 10 ⊻
+  - Zvyšuje sílu obou multiplikátorů
+- **Angle Multiplier**: 150 ⊻ (permanentní, Reset: NE)
+  - Formula: 1 + (playerSides - 2) / 5
+  - Examples: Triangle 1.2x, Hexagon 1.8x
+- **XP Multiplier**: 150 ⊻ (permanentní, Reset: NE)
+  - Formula: 1 + (playerSides - 2) / 5
+  - Examples: Triangle 1.2x, Hexagon 1.8x
 
 ---
 
 ### 🎨 RENDERING & UI (1 velký soubor)
 
-#### [render.js](render.js) ⭐⭐ NEJVĚTŠÍ SOUBOR (694 řádků)
-**Kompletní Renderovací Systém**
-- Canvas setup a 2D context
-- Shop state management (shopOpen, uiButtons)
+#### [render.js](render.js) ⭐⭐ NEJVĚTŠÍ SOUBOR (~1600 řádků)
+**Kompletní Renderovací Systém s Responzivním UI**
+- Canvas setup a 2D context s event listeners
+- Shop state management (shopOpen, shopScrollOffset, uiButtons)
+- **Scroll systém**: Wheel + touch swipe, offset limit 560px
+- **Responsive Layouts**:
+  - Mobile (< 480px): Vertikální + scroll
+  - Tablet (480-768px): 2-sloupec + scroll
+  - Desktop (> 768px): Plný bez scrollu
 - **Render funkce**:
-  - drawPolygon(): Základní kreslení shapes
-  - drawAngleIcon(): Sbíratelný úhel s oranžovým glow
-  - drawGame(): Hlavní rendering veškeho
-  - drawUI(): 3 herní panely (level info, XP bar, upgrades)
-  - drawShopUI(): Shop panel s upgrady a tlačítky
-  - drawPlayerWithGlow(): Hráč s pulsujícím efektem
-  - drawLevelUpAura(): Rozšiřující se kruhy při levelupu
-- **UI Elements**:
-  - 5 Color upgrade buttons (state-based rendering)
-  - 5 Sharpness upgrade buttons
-  - Shape upgrade button
-  - Levelup button s XP progress bar
-  - Info panely (level, XP, enemy count)
+  - drawPolygon(), drawAngleIcon() V-tvar (45°), drawGame()
+  - drawShopMobileVertical(), drawShopTablet(), drawShopDesktop()
+  - drawPlayerWithGlow(), drawLevelUpAura()
+- **UI Elements**: 5 Color + 5 Sharpness + Shape + Angle Multiplier + XP Multiplier
+  - Color coding: Zelená (koupeno) | Červená (lze koupit) | Šedá (zamčeno)
 
 ---
 
@@ -221,19 +230,20 @@
 ### Fyzika & Pohyb
 - [player.js](player.js#L1) - Gravitace, skoky, hranice
 - [collision.js](collision.js#L1) - Detekce kolizí
+- [angles.js](angles.js#L1) - **Bounce fyzika** (NOVÉ)
 - [config.js](config.js#L1) - Fyzikální konstanty
 
 ### AI & Chování
 - [enemies.js](enemies.js#L1) - Nepřátelský AI, pathfinding
-- [angles.js](angles.js#L1) - Kolektibilní fyzika
+- [angles.js](angles.js#L1) - Kolektibilní fyzika s bouncem
 
 ### Progrese & Upgrade
-- [leveling.js](leveling.js#L1) - XP systém, levely
-- [shop.js](shop.js#L1) - Upgrade definice
+- [leveling.js](leveling.js#L1) - XP systém, levely, **multiplikátory** (NOVÉ)
+- [shop.js](shop.js#L1) - Upgrade definice, **Angle & XP Multiplier** (NOVÉ)
 - [input.js](input.js#L1) - Shop UI click handling
 
 ### Vizuál & Efekty
-- [render.js](render.js#L1) - Kompletní rendering
+- [render.js](render.js#L1) - Kompletní rendering, **responsive layouts**, **scrollovatelný shop** (NOVÉ)
 - [enemyEffects.js](enemyEffects.js#L1) - Exploze
 - [angleEffects.js](angleEffects.js#L1) - Sbírací efekty
 - [background.js](background.js#L1) - Dekorativní shapes
@@ -267,6 +277,25 @@ $$\text{XP}_{\text{level}} = 30 \times 3^{\text{level}-1}$$
 
 Příklady: L1=30, L2=90, L3=270, L4=810
 
+### Geometrické Multiplikátory (Nové)
+$$\text{Multiplier} = 1 + \frac{\text{playerSides} - 2}{5}$$
+
+Aplikuje se na:
+- **Angle Multiplier**: Všechny sbírané úhly (z pickupů a nepřátel)
+- **XP Multiplier**: Všechno XP (z nepřátel)
+
+Příklady:
+- Triangle (3): 1 + (3-2)/5 = 1.2x
+- Square (4): 1 + (4-2)/5 = 1.4x
+- Pentagon (5): 1 + (5-2)/5 = 1.6x
+- Hexagon (6): 1 + (6-2)/5 = 1.8x
+
+### Integer Rounding (Nové)
+Všechny výpočty XP a úhlů jsou zaokrouhleny dolů pomocí Math.floor():
+- Zabrání frakčním sumám (1.4 → 1 úhel)
+- Konzistentní progrese
+- Aplikuje se po všech multiplikátorech
+
 ### MTV (Minimum Translation Vector) Kolizní Resoluce
 Vypočítává minimální vektor potřebný k oddělení overlappujících objektů. Používáno pro hráče vs překážku a nepřítel vs překážku.
 
@@ -281,11 +310,11 @@ Pooling pro skupiny podobných objektů. Efektivní pro spoustu entit stejného 
 |--------|-------|-----------|---------|
 | game.js | ~150 | ~50 | 33% |
 | player.js | ~90 | ~40 | 44% |
-| render.js | ~1000 | ~300 | 30% |
+| render.js | ~1600 | ~450 | 28% |
 | enemies.js | ~550 | ~270 | 49% |
-| angles.js | ~300 | ~140 | 47% |
+| angles.js | ~300 | ~150 | 50% |
 | collision.js | ~180 | ~80 | 44% |
-| **CELKEM** | **~3500** | **~1200** | **~34%** |
+| **CELKEM** | **~4100** | **~1400** | **~34%** |
 
 ---
 
@@ -295,6 +324,55 @@ Pooling pro skupiny podobných objektů. Efektivní pro spoustu entit stejného 
 2. **Pro Konkrétní Systém**: Použij navigaci výše nebo hledej soubor
 3. **Pro Detaily**: Každý JS soubor má detailní inline komentáře v češtině
 4. **Pro Gameplay**: Čti [README.md](README.md)
+
+---
+
+## 🆕 Nedávné Aktualizace (Poslední Session)
+
+### Bounce Physics pro Úhly (angles.js)
+- Detekce kolize s podlahou a stropem
+- Odskok s tlumením (vy *= -0.8)
+- Limit vertikální rychlosti na ±3 px/frame
+- Realistické fyzické chování místo statických padáků
+
+### V-Shaped Collectible Icons (render.js)
+- Změna z `<` tvaru (90°) na `∨` tvar (45°)
+- Inverzní úhel místo vodorovného
+- Lepší vizuální reprezentace "létajících úhlů"
+
+### Geometry Multipliers (leveling.js, shop.js)
+- **Angle Multiplier**: Multiplikuje všechny sbírané úhly
+- **XP Multiplier**: Multiplikuje všechno získané XP
+- Formula: `1 + (playerSides - 2) / 5`
+- Cena: 150 ⊻ každý (nezávislé nákupy)
+- Permanentní (neresetují se na levelup)
+- Zvyšují se s přidávanými stranami polygonu
+
+### Integer Rounding (leveling.js)
+- Math.floor() na všechny XP a angle výpočty
+- Zabraňuje frakčním sumám
+- Aplikuje se po všech multiplikátorech
+- Konzistentnější progrese hráče
+
+### Responsive Shop s Scrollováním (render.js)
+- **3 responsive layouts**: Mobile, Tablet, Desktop
+- **Scroll mechanika**: Wheel + touch swipe
+- **Scroll limit**: 560px (poslední prvek + padding)
+- **Shop elementy**: 
+  - Mobile (< 480px): Vertikální seznam + scroll
+  - Tablet (480-768px): 2-sloupec + scroll
+  - Desktop (> 768px): Plný layout bez scrollu
+
+### Vylepšené UI Spacing (render.js)
+- Mobile: 38px mezi tlačítky (z 30px), 210px mezi sekcemi (z 175px)
+- Tablet: 42px mezi tlačítky (z 35px)
+- Desktop: 48px mezi tlačítky (z 40px)
+- Multiplier tlačítka: 50-62px vzdálená pro jasnost
+
+### Nový Shape Upgrade Button (render.js)
+- Tlačítko pro upgrade tvaru (přidání stran)
+- Dynamicky se zobrazuje podle úrovně hráče
+- Náklady: 10 ⊻
 
 ---
 
@@ -316,9 +394,3 @@ Pooling pro skupiny podobných objektů. Efektivní pro spoustu entit stejného 
 - ✅ entityManager.js - Plně zdokumentován
 - ✅ enemyEffects.js - Plně zdokumentován
 - ✅ angleEffects.js - Plně zdokumentován
-
----
-
-**Poslední aktualizace**: Kdy byly všechny soubory dokumentovány v České češtině s detailními vysvětleními všech funkcí, algoritmů a game mechanik.
-
-🎉 **Dokumentace je kompletní!**
